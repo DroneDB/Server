@@ -17,6 +17,8 @@ const { Tag } = ddb;
 
 async function getDDBPath(req, res, next){
     const { org, ds } = req.params;
+
+    console.log("REMOVE ME!!");
         
     req.ddbPath = path.join(Directories.storagePath, org, ds);
 

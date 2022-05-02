@@ -64,6 +64,7 @@ config.remoteAuth = argv['remote-auth'] || fromConfigFile("remote-auth", "https:
 config.sslCert = argv['ssl-cert'] || fromConfigFile("ssl-cert", "");
 config.sslKey = argv['ssl-key'] || fromConfigFile("ssl-key", "");
 config.ssl = config.sslCert && config.sslKey;
+config.publicAddress = argv['public-address'] || fromConfigFile("public-address", "");
 config.powercycle = argv.powercycle || fromConfigFile("powercycle", false);
 
 module.exports = config;

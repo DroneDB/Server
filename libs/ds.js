@@ -7,6 +7,12 @@ const router = express.Router();
 const ddb = require('../vendor/ddb');
 const Directories = require('./Directories');
 const path = require('path');
+const { formDataParser } = require('./parsers');
+const { getDDBPath } = require('./middleware');
+
+const ddbUrlFromReq = (req) => {
+    return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
+}
 
 router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, async (req, res) => {
     if (Mode.singleDB){
@@ -51,6 +57,28 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, async (req, r
             res.json([]);
         }
     });
+});
+
+router.get('/orgs/:org/ds/:ds', security.allowOrgOwnerOrPublicOrgOnly, async (req, res) => {
+    if (Mode.singleDB){
+        // Single database
+        const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
+        info[0].depth = 0;
+        info[0].path = ddbUrlFromReq(req);
+        ddbUrlFromReq(req, info);
+        res.json(info);
+        return;
+    }
+});
+
+router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, getDDBPath, async (req, res) => {
+    const paths = req.body.path ? [req.body.path.toString()] : ".";
+
+    try{
+        res.json(await ddb.list(req.ddbPath, paths));
+    }catch(e){
+        res.status(400).json({error: e.message});
+    }
 });
 
 module.exports = {

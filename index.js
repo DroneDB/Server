@@ -13,7 +13,6 @@ const Directories = require('./libs/Directories');
 const express = require('express');
 const app = express();
 
-const security = require('./libs/security');
 const share = require('./libs/share');
 const ds = require('./libs/ds');
 const orgs = require('./libs/orgs');
@@ -29,7 +28,7 @@ app.use(share.api);
 app.use(orgs.api);
 app.use(ds.api);
 
-// app.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, dataset.handleList);
+app.enable('trust proxy');
 
 // app.get('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, dataset.handleDownload);
 // app.get('/orgs/:org/ds/:ds/download/:path*', formDataParser, security.allowDatasetRead, dataset.handleDownload);

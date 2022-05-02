@@ -1,7 +1,7 @@
 const { readJwt } = require('./jwt');
 const { PUBLIC_ORG_NAME } = require('./tag');
 const logger = require('./logger');
-const { getDDBPath } = require('./dataset');
+const { getDDBPath } = require('./middleware');
 const ddb = require('../vendor/ddb');
 
 const checkOrgOwner = function(req, res){
