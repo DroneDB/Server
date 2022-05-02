@@ -1,0 +1,6 @@
+[submodule "vendor/hub"]
+	path = vendor/hub
+	url = https://github.com/DroneDB/Hub
+[submodule "vendor/ddb"]
+	path = vendor/ddb
+	url = https://github.com/DroneDB/DroneDB

@@ -1,0 +1,43 @@
+{
+  "name": "ddb-server",
+  "version": "1.0.0",
+  "description": "Effortless aerial data management and sharing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DroneDB/Server.git"
+  },
+  "author": "Piero Toffanin",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/DroneDB/Server/issues"
+  },
+  "homepage": "https://github.com/DroneDB/Server#readme",
+  "dependencies": {
+    "archiver": "^5.0.2",
+    "async": "^3.2.0",
+    "axios": "^0.20.0",
+    "better-sqlite3": "^7.1.1",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.5",
+    "express": "^4.17.1",
+    "express-jwt": "^6.0.0",
+    "jquery": "^3.5.1",
+    "jsonwebtoken": "^8.5.1",
+    "minimist": "^1.2.5",
+    "multer": "^1.4.2",
+    "mv": "^2.1.1",
+    "regenerator-runtime": "^0.13.7",
+    "rimraf": "^3.0.2",
+    "uuid": "^8.3.0",
+    "vue-router": "^3.4.5",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.4",
+    "webpack-livereload-plugin": "^2.3.0"
+  }
+}
