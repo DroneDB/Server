@@ -2,6 +2,7 @@ const path = require('path');
 const { fsExists } = require('./fs');
 const Mode = require('./Mode');
 const Directories = require('./Directories');
+const ddb = require('../vendor/ddb');
 
 async function getDDBPath(req, res, next){
     if (Mode.singleDB){

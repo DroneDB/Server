@@ -14,6 +14,17 @@ const ddbUrlFromReq = (req) => {
     return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
 }
 
+const getThumbSourceFilePath = (entry) => {
+    if (entry.type === ddb.entry.type.POINTCLOUD) return `.ddb/build/${entry.hash}/ept/ept.json`;
+    else return entry.path;
+};
+
+const getTileSourceFilePath = (entry) => {
+    if (entry.type === ddb.entry.type.POINTCLOUD) return `.ddb/build/${entry.hash}/ept/ept.json`;
+    else if (entry.type === ddb.entry.type.GEORASTER) return `.ddb/build/${entry.hash}/cog/cog.tif`;
+    else return entry.path;
+};
+
 router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, async (req, res) => {
     if (Mode.singleDB){
         // Single database
@@ -80,6 +91,60 @@ router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead,
         res.status(400).json({error: e.message});
     }
 });
+
+router.get('/orgs/:org/ds/:ds/thumb', security.allowDatasetRead, getDDBPath, async (req, res) => {
+    try{
+        if (!req.query.path) throw new Error("Invalid path");
+
+        const thumbSize = parseInt(req.query.size) || 512;
+        if (isNaN(thumbSize) || thumbSize < 1) throw new Error("Invalid size");
+
+        const filePath = path.join(req.ddbPath, req.query.path);
+        if (filePath.indexOf(req.ddbPath) !== 0) throw new Error("Invalid path");
+        
+        const entry = await ddb.get(req.ddbPath, req.query.path);
+        const tsPath = path.join(req.ddbPath, getThumbSourceFilePath(entry));
+
+        const thumbFile = await ddb.thumbs.getFromUserCache(tsPath, { thumbSize });
+        res.sendFile(thumbFile);
+    }catch(e){
+        res.status(400).json({error: e.message});
+    }
+});
+
+router.get('/orgs/:org/ds/:ds/tiles/:tz/:tx/:ty.png', security.allowDatasetRead, getDDBPath, async (req, res) => {
+    try{
+        if (!req.query.path) throw new Error("Invalid path");
+        let { tz, tx, ty } = req.params;
+        let tileSize = 256;
+        
+        tz = parseInt(tz);
+        if (isNaN(tz)) throw new Error("Invalid tz");
+        tx = parseInt(tx);
+        if (isNaN(tx)) throw new Error("Invalid tx");
+
+        if (typeof ty === "string"){
+            if (ty.endsWith("@2x")){
+                tileSize *= 2;
+            }
+        }
+        ty = parseInt(ty);
+        if (isNaN(ty)) throw new Error("Invalid ty");
+
+        const filePath = path.join(req.ddbPath, req.query.path);
+        if (filePath.indexOf(req.ddbPath) !== 0) throw new Error("Invalid path");
+
+        const entry = await ddb.get(req.ddbPath, req.query.path);
+        const tsPath = path.join(req.ddbPath, getTileSourceFilePath(entry));
+
+        const tileFile = await ddb.tile.getFromUserCache(tsPath, tz, tx, ty, { tileSize, tms: true });
+        res.sendFile(tileFile);
+    }catch(e){
+        res.status(400).json({error: e.message});
+    }
+});
+
+
 
 module.exports = {
     api: router
