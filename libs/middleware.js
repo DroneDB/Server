@@ -30,6 +30,12 @@ async function getDDBPath(req, res, next){
     next();
 }
 
+const asyncHandle = func => (req, res, next) => {
+    return Promise.resolve(func(req, res, next)).catch(next);
+};
+
 module.exports = {
-    getDDBPath
+    getDDBPath,
+
+    asyncHandle
 };
