@@ -147,42 +147,6 @@ module.exports = {
         }
     }],
 
-    handleRename: [getDDBPath, async (req, res) => {
-        try{
-            if (!Tag.validComponent(req.body.slug)){
-                throw new Error(`Invalid name. must be valid ASCII and may contain lowercase 
-                    and uppercase letters, digits, underscores, periods and dashes.
-                    A tag name may not start with a period or a dash and may contain 
-                    a maximum of 128 characters.`);
-            }
-
-            const { org, ds } = req.params;
-            const newDs = req.body.slug;
-
-            
-            // Check if name already exists
-            const oldPath = path.join(Directories.storagePath, org, ds);
-            if (oldPath.indexOf(path.join(Directories.storagePath, org)) !== 0) throw new Error("Invalid dataset");
-            
-            const newPath = path.join(Directories.storagePath, org, newDs);
-            if (newPath === oldPath){
-                // Nothing to do
-                res.status(200).json({slug: newDs});
-                return;
-            }
-
-            if (await fsExists()){
-                throw new Error("A dataset with the same name already exist");
-            }
-
-            await fsRename(oldPath, newPath);
-
-            res.status(200).json({slug: newDs});
-        }catch(e){
-            res.status(400).json({error: e.message});
-        }
-    }],
-
     handleDownload: [getDDBPath, async (req, res) => {
         const { org, ds } = req.params;
 

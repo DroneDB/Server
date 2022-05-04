@@ -31,7 +31,7 @@ const allowOrgOwnerOrPublicOrgOnly = [readJwt, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const allowDatasetWrite = [readJwt, function(req, res, next){
+const allowDatasetWrite = [readJwt, getDDBPath, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next();
     }else{

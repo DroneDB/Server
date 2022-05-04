@@ -71,7 +71,7 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
     // });
 }));
 
-router.get('/orgs/:org/ds/:ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(async (req, res) => {
+router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHandle(async (req, res) => {
     if (Mode.singleDB){
         // Single database
         const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
@@ -81,14 +81,18 @@ router.get('/orgs/:org/ds/:ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHand
         res.json(info);
         return;
     }
+
+    // TODO!
 }));
 
-router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(async (req, res) => {
+// TODO: add put ds
+
+router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, asyncHandle(async (req, res) => {
     const paths = req.body.path ? [req.body.path.toString()] : ".";
     res.json(await ddb.list(req.ddbPath, paths));
 }));
 
-router.get('/orgs/:org/ds/:ds/thumb', security.allowDatasetRead, getDDBPath, asyncHandle(async (req, res) => {
+router.get('/orgs/:org/ds/:ds/thumb', security.allowDatasetRead, asyncHandle(async (req, res) => {
     if (!req.query.path) throw new Error("Invalid path");
 
     const thumbSize = parseInt(req.query.size) || 512;
@@ -104,7 +108,7 @@ router.get('/orgs/:org/ds/:ds/thumb', security.allowDatasetRead, getDDBPath, asy
     res.sendFile(thumbFile);
 }));
 
-router.get('/orgs/:org/ds/:ds/tiles/:tz/:tx/:ty.png', security.allowDatasetRead, getDDBPath, asyncHandle(async (req, res) => {
+router.get('/orgs/:org/ds/:ds/tiles/:tz/:tx/:ty.png', security.allowDatasetRead, asyncHandle(async (req, res) => {
     if (req.query.path === undefined) throw new Error("Invalid path");
     let { tz, tx, ty } = req.params;
     let tileSize = 256;
@@ -132,7 +136,7 @@ router.get('/orgs/:org/ds/:ds/tiles/:tz/:tx/:ty.png', security.allowDatasetRead,
     res.sendFile(tileFile);
 }));
 
-router.post('/orgs/:org/ds/:ds/search', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(async (req, res) => {
+router.post('/orgs/:org/ds/:ds/search', formDataParser, security.allowDatasetRead, asyncHandle(async (req, res) => {
     let { query } = req.body;
 
     if (typeof query !== 'string') throw new Error("Invalid query");
@@ -143,14 +147,51 @@ router.post('/orgs/:org/ds/:ds/search', formDataParser, security.allowDatasetRea
 }));
 
 router.get('/orgs/:org/ds/:ds/download/get/:uuid', handleDownloadFile);
-router.get('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
-router.get('/orgs/:org/ds/:ds/download/:path*', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
-router.post('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
+router.get('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, asyncHandle(handleDownload));
+router.get('/orgs/:org/ds/:ds/download/:path*', formDataParser, security.allowDatasetRead, asyncHandle(handleDownload));
+router.post('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, asyncHandle(handleDownload));
 
-router.post('/orgs/:org/ds/:ds/chattr', formDataParser, security.allowDatasetWrite, getDDBPath, asyncHandle(async (req, res) => {
+router.post('/orgs/:org/ds/:ds/chattr', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     if (!req.body.attrs) throw new Error("Missing attributes");
     res.status(200).json(await ddb.chattr(req.ddbPath, JSON.parse(req.body.attrs)));
 }));
+
+router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    if (Mode.singleDB){
+        res.json({error: "Renaming is not available"});
+        return;
+    }
+
+    if (!Tag.validComponent(req.body.slug)){
+        throw new Error(`Invalid name. must be valid ASCII and may contain lowercase 
+            and uppercase letters, digits, underscores, periods and dashes.
+            A tag name may not start with a period or a dash and may contain 
+            a maximum of 128 characters.`);
+    }
+
+    const { org, ds } = req.params;
+    const newDs = req.body.slug;
+
+    
+    // Check if name already exists
+    const oldPath = path.join(Directories.storagePath, org, ds);
+    if (oldPath.indexOf(path.join(Directories.storagePath, org)) !== 0) throw new Error("Invalid dataset");
+    
+    const newPath = path.join(Directories.storagePath, org, newDs);
+    if (newPath === oldPath){
+        // Nothing to do
+        res.status(200).json({slug: newDs});
+        return;
+    }
+
+    if (await fsExists()){
+        throw new Error("A dataset with the same name already exist");
+    }
+
+    await fsRename(oldPath, newPath);
+
+    res.status(200).json({slug: newDs});
+));
 
 
 module.exports = {

@@ -31,8 +31,6 @@ app.use(ds.api);
 app.enable('trust proxy');
 
 
-// app.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWrite, dataset.handleRename);
-
 // app.get('/orgs/:org/ds/:ds', security.allowDatasetRead, dataset.handleInfo);
 // app.delete('/orgs/:org/ds/:ds', security.allowDatasetWrite, dataset.handleDelete);
 
