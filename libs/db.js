@@ -16,7 +16,24 @@ const migrations = [
         "key"	TEXT,
         "value"	TEXT,
         PRIMARY KEY("key")
-    );`
+    );
+    
+    CREATE TABLE IF NOT EXISTS "roles" (
+        "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "role"	TEXT UNIQUE NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "user_roles" (
+        "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "user_id"	INTEGER NOT NULL,
+        "role_id"	INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_user_roles_user_id
+    ON user_roles (user_id);
+    CREATE INDEX IF NOT EXISTS ix_user_roles_role_id
+    ON user_roles (role_id);
+    `
 ];
 
 module.exports = {
@@ -50,8 +67,14 @@ module.exports = {
     fetchOne: function(query, ...params){
         return this.db.prepare(query).get(...params);
     },
+    fetchMultiple: function(query, ...params){
+        return this.prepare(query).all(...params);
+    },
     prepare: function(...params){
         return this.db.prepare(...params);
+    },
+    exec: function(...params){
+        return this.db.exec(...params);
     },
     get: function(key){
         return (this.fetchOne('SELECT value FROM config WHERE key = ?', key) || {}).value;

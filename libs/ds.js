@@ -9,6 +9,7 @@ const Directories = require('./Directories');
 const path = require('path');
 const { formDataParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
+const { handleDownload, handleDownloadFile } = require('./download');
 
 const ddbUrlFromReq = (req) => {
     return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
@@ -139,6 +140,16 @@ router.post('/orgs/:org/ds/:ds/search', formDataParser, security.allowDatasetRea
     query = query.replace(/%/g, "*");
     const entries = await ddb.search(req.ddbPath, query);
     res.json(entries);
+}));
+
+router.get('/orgs/:org/ds/:ds/download/get/:uuid', handleDownloadFile);
+router.get('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
+router.get('/orgs/:org/ds/:ds/download/:path*', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
+router.post('/orgs/:org/ds/:ds/download', formDataParser, security.allowDatasetRead, getDDBPath, asyncHandle(handleDownload));
+
+router.post('/orgs/:org/ds/:ds/chattr', formDataParser, security.allowDatasetWrite, getDDBPath, asyncHandle(async (req, res) => {
+    if (!req.body.attrs) throw new Error("Missing attributes");
+    res.status(200).json(await ddb.chattr(req.ddbPath, JSON.parse(req.body.attrs)));
 }));
 
 

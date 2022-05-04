@@ -68,17 +68,29 @@ function generateSalt() {
 module.exports = {
     api: router,
 
-    createDefaultUsers: function(){
+    initDefaults: function(){
         const r = db.prepare("SELECT * FROM users WHERE username = ?").get('admin');
         if (!r){
-            logger.info("Adding default admin user");
-            this.addUser('admin', 'password');
+            this.addUser('admin', 'password', ['admin']);
         }
     },
 
-    addUser: function(username, password){
+    addUser: function(username, password, roles){
+        
         const salt = generateSalt();
         const pwd = crypto.createHmac('sha512', salt).update(password).digest("base64");
-        db.prepare(`INSERT INTO users (username, salt, password) VALUES (?, ?, ?)`).run(username, salt, pwd);
+        logger.info(`Adding ${username} user`);
+        const info = db.prepare(`INSERT INTO users (username, salt, password) VALUES (?, ?, ?)`).run(username, salt, pwd);
+
+        roles.forEach(role => {
+            const r = db.prepare("SELECT id FROM roles WHERE role = ?").get(role);
+            if (!r){
+                logger.info(`Adding ${role} role`);
+                db.prepare("INSERT INTO roles (role) VALUES(?)").run(role);
+            }
+
+            const roleId = db.fetchOne("SELECT id FROM roles WHERE role = ?", role)['id'];
+            db.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)").run(info.lastInsertRowid, roleId);
+        });
     }
 }

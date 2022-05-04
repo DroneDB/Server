@@ -16,13 +16,20 @@ const readJwt = function(req, res, next){
         // Check cookie
         token = req.cookies['jwtToken'];
     }
-
     if (token) {
         try{
             const decoded = jwt.verify(token, secret, { algorithms: ["HS256"]});
             req.user = decoded;
+            
+            // Populate info from db
+            req.user.roles = db.fetchMultiple(`SELECT r.role AS role 
+                FROM users u, roles r 
+                INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id 
+                WHERE u.username = ?`, req.user.username).map(r => r['role']);
         }catch(e){
-            // Invalid
+            err = new Error("Token expired");
+            err.name = 'UnauthorizedError';
+            next(err);
         }
     }
 

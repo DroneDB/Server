@@ -7,7 +7,10 @@ const ddb = require('../vendor/ddb');
 const checkOrgOwner = function(req, res){
     const { org } = req.params;
 
-    if (!org) res.status(400).json({error: "Missing organization param"});
+    if (!org) throw new Error("Missing organization param");
+
+    // Admins own everything
+    if (req.user.roles.indexOf("admin") !== -1) return true;
     
     return req.user.username && req.user.username == org;
 };
@@ -28,7 +31,7 @@ const allowOrgOwnerOrPublicOrgOnly = [readJwt, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const allowDatasetOwnerOnly = [readJwt, function(req, res, next){
+const allowDatasetWrite = [readJwt, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next();
     }else{
@@ -81,6 +84,6 @@ const allowDatasetRead = [readJwt, getDDBPath, async function(req, res, next){
 module.exports = {
     allowOrgOwnerOrPublicOrgOnly,
     allowDatasetOwnerOrPasswordOnly,
-    allowDatasetOwnerOnly,
+    allowDatasetWrite,
     allowDatasetRead
 };
