@@ -3,6 +3,7 @@ const { PUBLIC_ORG_NAME } = require('./tag');
 const logger = require('./logger');
 const { getDDBPath } = require('./middleware');
 const ddb = require('../vendor/ddb');
+const path = require('path');
 
 const checkOrgOwner = function(req, res){
     const { org } = req.params;
@@ -81,9 +82,17 @@ const allowDatasetRead = [readJwt, getDDBPath, async function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
+const pathTraversalCheck = (ddbPath, inputPath) => {
+    if (path.resolve(ddbPath, inputPath).indexOf(ddbPath) !== 0){
+        throw new Error(`Invalid path: ${inputPath}`);
+    }
+}
+
 module.exports = {
     allowOrgOwnerOrPublicOrgOnly,
     allowDatasetOwnerOrPasswordOnly,
     allowDatasetWrite,
-    allowDatasetRead
+    allowDatasetRead,
+
+    pathTraversalCheck
 };

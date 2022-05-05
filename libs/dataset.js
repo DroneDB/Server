@@ -10,8 +10,6 @@ const archiver = require('archiver');
 
 const fsExists = util.promisify(fs.exists);
 const fsLstat = util.promisify(fs.lstat);
-const fsRename = util.promisify(fs.rename);
-
 
 const { Tag } = ddb;
 

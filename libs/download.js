@@ -87,15 +87,15 @@ module.exports = {
 
         let paths = [];
         if (req.method === "GET" && typeof req.query.path === "string"){
-            paths = req.query.path.split(',');
+            paths = req.query.path.split(',').map(decodeURIComponent);
         }else if (req.method === "GET" && req.params.path !== undefined){
-	        paths = (new URL(`http://localhost${req.url}`)).pathname.substring(`/orgs/${org}/ds/${ds}/download/`.length);
+	        paths = decodeURIComponent((new URL(`http://localhost${req.url}`)).pathname.substring(`/orgs/${org}/ds/${ds}/download/`.length));
         }else if (req.method === "POST" && req.body.path){
             paths = req.body.path;
         }
         
         if (typeof paths === "string") paths = [paths];
-        
+
         // Generate UUID
         const hash = crypto.createHash('sha256');
         const uuid = hash.update(`${Math.random()}/${new Date().getTime()}`).digest("hex");

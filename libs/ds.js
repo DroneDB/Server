@@ -7,7 +7,8 @@ const router = express.Router();
 const ddb = require('../vendor/ddb');
 const Directories = require('./Directories');
 const path = require('path');
-const { formDataParser } = require('./parsers');
+const { fsMove, fsMkdir } = require('./fs');
+const { formDataParser, uploadParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
 
@@ -16,6 +17,13 @@ const formOrQueryParam = (req, param, defaultValue = "") => {
     else if (req.body && req.body[param] !== undefined) return req.body[param];
     else return defaultValue;
 };
+
+const checkAllowedPath = (ddbPath, inputPath) => {
+    security.pathTraversalCheck(ddbPath, inputPath);
+
+    // Don't allow direct writes / reads to .ddb subfolders
+    if (path.resolve(ddbPath, inputPath).indexOf(path.join(ddbPath, ".ddb")) === 0) throw new Error(`Invalid path: ${inputPath}`);
+}
 
 const ddbUrlFromReq = (req) => {
     return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
@@ -205,7 +213,7 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
         throw new Error("A dataset with the same name already exist");
     }
 
-    await fsRename(oldPath, newPath);
+    await fsMove(oldPath, newPath);
 
     res.status(200).json({slug: newDs});
 }));
@@ -231,6 +239,26 @@ router.post('/orgs/:org/ds/:ds/meta/remove', formDataParser, security.allowDatas
 }));
 router.post('/orgs/:org/ds/:ds/meta/unset', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.remove(req.ddbPath, formOrQueryParam(req, "path"), formOrQueryParam(req, "key")));
+}));
+
+router.post('/orgs/:org/ds/:ds/obj', uploadParser("file"), security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    if (req.body.path === undefined) throw new Error("Path missing");
+    
+    checkAllowedPath(req.ddbPath, req.body.path);
+
+    const destPath = path.join(req.ddbPath, req.body.path);
+
+    if (req.filePath !== undefined){
+        // Move file to database
+        await fsMove(req.filePath, destPath);
+    }else{
+        // Directory
+        await fsMkdir(destPath, { recursive: true});
+    }
+
+    // Add to index
+    const entries = await ddb.add(req.ddbPath, req.body.path);
+    res.json(entries[0]);
 }));
 
 module.exports = {
