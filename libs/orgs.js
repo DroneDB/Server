@@ -7,8 +7,8 @@ router.get('/orgs/:org?', async (req, res) => {
     if (Mode.singleDB){
         // Single org (default)
         const publicOrg = {
-            slug: "public",
-            name: "Public",
+            slug: "projects",
+            name: "Projects",
             description: "",
             creationDate: Consts.startupTime.toISOString(),
             owner: null,

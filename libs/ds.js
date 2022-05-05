@@ -11,6 +11,12 @@ const { formDataParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
 
+const formOrQueryParam = (req, param, defaultValue = "") => {
+    if (req.query[param] !== undefined) return req.query[param];
+    else if (req.body && req.body[param] !== undefined) return req.body[param];
+    else return defaultValue;
+};
+
 const ddbUrlFromReq = (req) => {
     return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
 }
@@ -85,7 +91,18 @@ router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHand
     // TODO!
 }));
 
-// TODO: add put ds
+router.put('/orgs/:org/ds/:ds', formDataParser, getDDBPath, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    const { name, isPublic } = req.body;
+
+    if (isPublic !== undefined) await ddb.chattr(req.ddbPath, {public: Boolean(isPublic)});
+    if (Mode.singleDB){
+        if (name !== undefined) await ddb.meta.set(req.ddbPath, "", "name", name);
+    }else{
+        // TODO
+    }
+
+    res.json({name, isPublic});
+}));
 
 router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, asyncHandle(async (req, res) => {
     const paths = req.body.path ? [req.body.path.toString()] : ".";
@@ -158,7 +175,7 @@ router.post('/orgs/:org/ds/:ds/chattr', formDataParser, security.allowDatasetWri
 
 router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     if (Mode.singleDB){
-        res.json({error: "Renaming is not available"});
+        res.json({slug: req.params.ds}); // Don't allow changes
         return;
     }
 
@@ -191,8 +208,30 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
     await fsRename(oldPath, newPath);
 
     res.status(200).json({slug: newDs});
-));
+}));
 
+router.get('/orgs/:org/ds/:ds/meta/get/:key', security.allowDatasetRead, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.get(req.ddbPath, req.query.path, req.params.key));
+}));
+router.get('/orgs/:org/ds/:ds/meta/list', security.allowDatasetRead, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.list(req.ddbPath, req.query.path));
+}));
+router.post('/orgs/:org/ds/:ds/meta/add', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.add(req.ddbPath, formOrQueryParam(req, "path"), 
+                                             formOrQueryParam(req, "key"), 
+                                             formOrQueryParam(req, "data")));
+}));
+router.post('/orgs/:org/ds/:ds/meta/set', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.set(req.ddbPath, formOrQueryParam(req, "path"), 
+                                             formOrQueryParam(req, "key"), 
+                                             formOrQueryParam(req, "data")));
+}));
+router.post('/orgs/:org/ds/:ds/meta/remove', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.remove(req.ddbPath, formOrQueryParam(req, "id")));
+}));
+router.post('/orgs/:org/ds/:ds/meta/unset', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.remove(req.ddbPath, formOrQueryParam(req, "path"), formOrQueryParam(req, "key")));
+}));
 
 module.exports = {
     api: router
