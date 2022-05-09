@@ -1,5 +1,6 @@
 const http = require('http');
-const { login, populateRoles } = require('./users');
+const { login } = require('./users');
+const { readJwt } = require('./jwt');
 
 function unauthorized(res, realm) {
     res.statusCode = 401;
@@ -13,15 +14,14 @@ function error(code, msg){
     return err;
 };
 
-async function basicAuth(req, res, next) {
+async function readBasicAuth(req, res, next) {
     const realm = 'Authorization Required';
     var authorization = req.headers.authorization;
-
-    if (req.user) return next();
+    
+    if (req.user && req.user.username) return next();
     if (!authorization) return unauthorized(res, realm);
 
     var parts = authorization.split(' ');
-
     if (parts.length !== 2) return next(error(400));
 
     var scheme = parts[0]
@@ -32,7 +32,7 @@ async function basicAuth(req, res, next) {
 
     var user = credentials.slice(0, index)
     , pass = credentials.slice(index + 1);
-    
+
     const userInfo = await login(user, pass);
     req.user = { username: userInfo.username };
     req.token = userInfo.token;
@@ -40,5 +40,5 @@ async function basicAuth(req, res, next) {
 }
 
 module.exports = {
-    basicAuth
+    basicAuth: [readJwt, readBasicAuth]
 };

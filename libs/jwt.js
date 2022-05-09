@@ -7,6 +7,7 @@ const DEFAULT_EXPIRATION_HOURS = 6;
 let secret = null;
 
 const readJwt = function(req, res, next){
+    
     req.user = {};
     
     let token = null;
@@ -28,14 +29,16 @@ const readJwt = function(req, res, next){
         try{
             const decoded = jwt.verify(token, secret, { algorithms: ["HS256"]});
             req.user = decoded;
+            next();
         }catch(e){
             err = new Error("Token expired");
             err.name = 'UnauthorizedError';
             next(err);
         }
+    }else{
+        next();
     }
 
-    next();
 };
 
 module.exports = {
@@ -44,7 +47,8 @@ module.exports = {
         db.setIfNotExists("jwt_secret", crypto.randomBytes(32).toString('hex'));
         secret = db.get("jwt_secret");
     },
-
+    
+    readJwt,
     jwtAuth: [readJwt, function(req, res, next){
     	if (!req.user.username) res.status(401).json({error: "Unauthorized"});
  

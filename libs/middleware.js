@@ -31,7 +31,25 @@ async function getDDBPath(req, res, next){
 }
 
 const asyncHandle = func => (req, res, next) => {
-    return Promise.resolve(func(req, res, next)).catch(next);
+    if (Array.isArray(func) && func.length > 0){
+        return new Promise(async (resolve, reject) => {
+            const exec = async i => {
+                if (i >= func.length){
+                    resolve(next());
+                    return;
+                }
+
+                try{
+                    await (func[i])(req, res, async () => { await exec(i + 1)});
+                }catch(e){
+                    resolve(next(e));
+                }
+            };
+            await exec(0);
+        });
+    }else{
+        return Promise.resolve(func(req, res, next)).catch(next);
+    }
 };
 
 module.exports = {
