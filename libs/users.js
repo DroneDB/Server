@@ -24,6 +24,18 @@ const refreshToken = function(signObj){
     return jwt.sign(newObj);
 }
 
+const populateRoles = function(req, res, next){
+    if (req.user !== undefined){
+        req.user.roles = db.fetchMultiple(`SELECT r.role AS role 
+                    FROM users u, roles r 
+                    INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id 
+                    WHERE u.username = ?`, req.user.username).map(r => r['role']);
+    }
+    next();
+}
+
+const userAuth = [jwtAuth, populateRoles];
+
 router.post('/users/authenticate', formDataParser, async (req, res) => {
     try{
         const userInfo = await login(req.body.username, req.body.password, req.body.token);
@@ -38,7 +50,7 @@ router.post('/users/authenticate', formDataParser, async (req, res) => {
     }
 });
 
-router.post('/users/authenticate/refresh', jwtAuth, (req, res) => {
+router.post('/users/authenticate/refresh', userAuth, (req, res) => {
     try{
         const token = refreshToken(req.user);
 
@@ -67,6 +79,10 @@ function generateSalt() {
 
 module.exports = {
     api: router,
+
+    login,
+    userAuth,
+    populateRoles,
 
     initDefaults: function(){
         const r = db.prepare("SELECT * FROM users WHERE username = ?").get('admin');

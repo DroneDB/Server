@@ -1,4 +1,4 @@
-const { readJwt } = require('./jwt');
+const { userAuth } = require('./users');
 const { PUBLIC_ORG_NAME } = require('./tag');
 const logger = require('./logger');
 const { getDDBPath } = require('./middleware');
@@ -16,7 +16,7 @@ const checkOrgOwner = function(req, res){
     return req.user.username && req.user.username == org;
 };
 
-const allowOrgOwnerOrPublicOrgOnly = [readJwt, function(req, res, next){
+const allowOrgOwnerOrPublicOrgOnly = [userAuth, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;
@@ -32,7 +32,7 @@ const allowOrgOwnerOrPublicOrgOnly = [readJwt, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const allowDatasetWrite = [readJwt, getDDBPath, function(req, res, next){
+const allowDatasetWrite = [userAuth, getDDBPath, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next();
     }else{
@@ -40,7 +40,7 @@ const allowDatasetWrite = [readJwt, getDDBPath, function(req, res, next){
     }
 }];
 
-const allowDatasetOwnerOrPasswordOnly = [readJwt, function(req, res, next){
+const allowDatasetOwnerOrPasswordOnly = [userAuth, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;
@@ -56,7 +56,7 @@ const allowDatasetOwnerOrPasswordOnly = [readJwt, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const allowDatasetRead = [readJwt, getDDBPath, async function(req, res, next){
+const allowDatasetRead = [userAuth, getDDBPath, async function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;

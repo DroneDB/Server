@@ -7,10 +7,11 @@ const router = express.Router();
 const ddb = require('../vendor/ddb');
 const Directories = require('./Directories');
 const path = require('path');
-const { fsMove, fsMkdir } = require('./fs');
+const { fsMove, fsMkdir, fsRm, fsExists } = require('./fs');
 const { formDataParser, uploadParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
+const { basicAuth } = require('./basicauth');
 
 const formOrQueryParam = (req, param, defaultValue = "") => {
     if (req.query[param] !== undefined) return req.query[param];
@@ -23,6 +24,11 @@ const checkAllowedPath = (ddbPath, inputPath) => {
 
     // Don't allow direct writes / reads to .ddb subfolders
     if (path.resolve(ddbPath, inputPath).indexOf(path.join(ddbPath, ".ddb")) === 0) throw new Error(`Invalid path: ${inputPath}`);
+}
+const checkAllowedBuildPath = (ddbPath, inputPath) => {
+    security.pathTraversalCheck(ddbPath, inputPath);
+
+    if (path.resolve(ddbPath, inputPath).indexOf(path.join(ddbPath, ".ddb")) !== 0) throw new Error(`Invalid build path: ${inputPath}`);
 }
 
 const ddbUrlFromReq = (req) => {
@@ -260,6 +266,56 @@ router.post('/orgs/:org/ds/:ds/obj', uploadParser("file"), security.allowDataset
     const entries = await ddb.add(req.ddbPath, req.body.path);
     res.json(entries[0]);
 }));
+
+router.delete('/orgs/:org/ds/:ds/obj', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    if (req.body.path === undefined) throw new Error("Path missing");
+    
+    checkAllowedPath(req.ddbPath, req.body.path);
+
+    const removePath = path.join(req.ddbPath, req.body.path);
+
+    // Remove from index
+    await ddb.remove(req.ddbPath, req.body.path);
+    
+    await fsRm(removePath, { recursive: true });
+
+    res.status(204).send("");
+}));
+
+router.put('/orgs/:org/ds/:ds/obj', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    if (req.body.source === undefined) throw new Error("Source missing");
+    if (req.body.dest === undefined) throw new Error("Dest missing");
+    
+    checkAllowedPath(req.ddbPath, req.body.source);
+    checkAllowedPath(req.ddbPath, req.body.dest);
+    
+    const sourcePath = path.join(req.ddbPath, req.body.source);
+    const destPath = path.join(req.ddbPath, req.body.dest);
+
+    // Remove from index
+    await ddb.move(req.ddbPath, req.body.source, req.body.dest);
+    
+    await fsMove(sourcePath, destPath);
+
+    res.status(204).send("");
+}));
+
+router.head('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.allowDatasetRead, asyncHandle(async (req, res) => {
+    const p = req.params['0'] !== undefined ? req.params['0'] : "";
+    const buildPath = path.join(".ddb", "build", req.params.hash, p);
+    checkAllowedBuildPath(req.ddbPath, buildPath);
+
+    if (await fsExists(path.join(req.ddbPath, buildPath))) res.status(200).send("");
+    else res.status(404).send("");
+}));
+router.get('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.allowDatasetRead, asyncHandle(async (req, res) => {
+    const p = req.params['0'] !== undefined ? req.params['0'] : "";
+    const buildPath = path.join(".ddb", "build", req.params.hash, p);
+    checkAllowedBuildPath(req.ddbPath, buildPath);
+
+    res.sendFile(path.resolve(path.join(req.ddbPath, buildPath)));
+}));
+
 
 module.exports = {
     api: router

@@ -11,7 +11,7 @@ const ddb = require('../vendor/ddb');
 const { PUBLIC_ORG_NAME } = require('./tag');
 const express = require('express');
 const router = express.Router();
-const { jwtAuth } = require('./jwt');
+const { userAuth } = require('./users');
 const { formDataParser } = require('./parsers');
 
 const removeDirectory = function(dir, cb = () => {}){
@@ -257,9 +257,9 @@ const handleInit = (req, res) => {
     });
 }
 
-router.post('/share/init', jwtAuth, assignUUID, formDataParser, handleInit);
-router.post('/share/upload/:uuid', jwtAuth, getUUID, uploadFile, handleUpload);
-router.post('/share/commit/:uuid', jwtAuth, getUUID, handleCommit);
+router.post('/share/init', userAuth, assignUUID, formDataParser, handleInit);
+router.post('/share/upload/:uuid', userAuth, getUUID, uploadFile, handleUpload);
+router.post('/share/commit/:uuid', userAuth, getUUID, handleCommit);
 
 
 module.exports = {
