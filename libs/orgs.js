@@ -17,7 +17,11 @@ router.get('/orgs/:org?', async (req, res) => {
         const orgs = [publicOrg];
 
         if (req.params.org === undefined) res.json(orgs);
-        else res.json(orgs.find(o => o.slug === req.params.org) || {error: "Organization not found"});
+        else{
+            const org = orgs.find(o => o.slug === req.params.org);
+            if (org) res.json(org);
+            else res.status(404).json({error: "Organization not found"});
+        }
     }else{
         res.json([{TODO: true}]);
     }

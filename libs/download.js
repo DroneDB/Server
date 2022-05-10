@@ -91,9 +91,9 @@ module.exports = {
         }else if (req.method === "GET" && req.params.path !== undefined){
 	        paths = decodeURIComponent((new URL(`http://localhost${req.url}`)).pathname.substring(`/orgs/${org}/ds/${ds}/download/`.length));
         }else if (req.method === "POST" && req.body.path){
-            paths = req.body.path;
+            paths = req.body.path.split(',');
         }
-        
+
         if (typeof paths === "string") paths = [paths];
 
         // Generate UUID
@@ -178,11 +178,11 @@ module.exports = {
                     created: new Date().getTime()
                 };
                 
-                if (req.method === "POST"){
-                    res.status(200).json({downloadUrl: downloadUrl(uuid)});
-                }else{
-                    await handleDownloadTask(res, downloadTasks[uuid]);
-                }
+                // if (req.method === "POST"){
+                    // res.status(200).json({downloadUrl: downloadUrl(uuid)});
+                // }else{
+                await handleDownloadTask(res, downloadTasks[uuid]);
+                // }
             }catch(e){
                 await die(`Cannot download dataset: ${e.message}`);
             }

@@ -39,7 +39,7 @@ const migrations = [
 module.exports = {
     initialize: function(){
         // init
-        const dbPath = path.join(Directories.data, 'global.db');
+        const dbPath = path.join(Directories.data, 'server.db');
         let currentMigration = 0;
 
         this.db = require('better-sqlite3')(dbPath, {});

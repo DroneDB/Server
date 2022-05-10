@@ -1,6 +1,7 @@
 'use strict';
 
 let fs = require('fs');
+let os = require('os');
 let argv = require('minimist')(process.argv.slice(2));
 let utils = require('./libs/utils');
 
@@ -10,8 +11,11 @@ Usage: node index.js [storage-path] [options]
 
 Options:
 	--storage-path	Path to the storage folder or individual DroneDB database (default: .)
-	--config <path>	Path to the configuration file (default: config-default.json)	
+	--config <path>	Path to the configuration file (default: none)	
 	-p, --port <number> 	Port to bind the server to (default: 3000)
+	--hub-name <name> 	Name of the server (default: machine's hostname)
+	--hub-icon <icon>	Icon to use in the UI's header. Can be one of https://semantic-ui.com/elements/icon.html. (default: "dronedb")
+	--hub-logo <path>	Path to image (SVG, PNG or JPEG) to use as a logo (default: none)
 	--log-level <logLevel>	Set log level verbosity (default: info)
 	-a, --auth <provider>	Authentication provider to use. [local|remote] (default: local)
 	--remote-auth <url>	Remote authentication URL. (default: https://dronedb.app)
@@ -57,8 +61,12 @@ config.logger.logDirectory = fromConfigFile("logger.logDirectory", ''); // Set t
 
 config.storagePath = (argv._.length ? argv._[0] : "") || argv.storagePath || argv.s || fromConfigFile("storagePath", process.env.STORAGE_PATH || ".");
 config.port = parseInt(argv.port || argv.p || fromConfigFile("port", process.env.PORT || 5000));
+config.hub = {
+    name: argv['hub-name'] || fromConfigFile("hub-name", process.env.HUB_NAME || os.hostname()),
+    icon: argv['hub-icon'] || fromConfigFile("hub-icon", process.env.HUB_ICON || "dronedb"),
+    logo: argv['hub-logo'] || fromConfigFile("hub-logo", process.env.HUB_LOGO || ""),
+};
 config.cleanupUploadsAfter = parseInt(argv['cleanup-uploads-after'] || fromConfigFile("cleanupUploadsAfter", 2880));
-config.test = argv.test || fromConfigFile("test", false);
 config.auth = argv.auth || argv.a || fromConfigFile("auth", "local");
 config.remoteAuth = argv['remote-auth'] || fromConfigFile("remote-auth", "https://dronedb.app");
 config.sslCert = argv['ssl-cert'] || fromConfigFile("ssl-cert", "");

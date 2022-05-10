@@ -9,6 +9,7 @@ const logger = require('./libs/logger');
 const authProviders = require('./libs/authProviders');
 const Mode = require('./libs/Mode');
 const Directories = require('./libs/Directories');
+const Hub = require('./libs/hub');
 
 const express = require('express');
 const app = express();
@@ -18,33 +19,18 @@ const ds = require('./libs/ds');
 const orgs = require('./libs/orgs');
 const users = require('./libs/users');
 
-app.use(express.static('vendor/hub/build'));
 app.use(cookieParser());
 
 let server;
 
+app.use(Hub.api);
 app.use(users.api);
 app.use(share.api);
 app.use(orgs.api);
 app.use(ds.api);
+app.use(express.static('vendor/hub/build'));
 
 app.enable('trust proxy');
-
-
-// app.get('/orgs/:org/ds/:ds', security.allowDatasetRead, dataset.handleInfo);
-// app.delete('/orgs/:org/ds/:ds', security.allowDatasetWrite, dataset.handleDelete);
-
-const webappRouteHandler = (req, res) => {
-    res.sendFile(__dirname + '/vendor/hub/build/index.html');
-};
-
-// Not part of official API
-app.get('/r/:org?/:ds?', webappRouteHandler);
-app.get('/login', webappRouteHandler);
-app.get('/upload', webappRouteHandler);
-app.get('/', (req, res) => {
-    res.redirect(301, '/login');
-});
 
 app.use((err, req, res, next) => {
     if (err.name === 'UnauthorizedError') {
@@ -69,18 +55,13 @@ process.on('SIGTERM', gracefulShutdown);
 // listen for INT signal e.g. Ctrl-C
 process.on('SIGINT', gracefulShutdown);
 
-// Startup
-if (config.test) {
-    logger.info("Running in test mode");
-}
-
-
 logger.info(`${packageJson.name} ${packageJson.version}`);
 
 let commands = [
     new Promise(async (resolve, reject) => {
         await Mode.initialize();
         Directories.initialize();
+        Hub.initialize();
         db.initialize();
         jwt.initialize();
         

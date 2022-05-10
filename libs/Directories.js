@@ -20,9 +20,8 @@ class Directories{
     }
 
     static get data(){
-        if (config.test) return path.join("tests", "data");
-
-        return path.join(os.homedir(), ".ddb-server");
+        if (Mode.singleDB) return path.join(os.homedir(), ".ddb-server");
+        else return this.storagePath;
     }
 
     static get storagePath(){

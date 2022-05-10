@@ -97,6 +97,7 @@ router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHand
         const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
         info[0].depth = 0;
         info[0].path = ddbUrlFromReq(req);
+        info[0].hash = null;
         ddbUrlFromReq(req, info);
         res.json(info);
         return;
@@ -224,6 +225,10 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
     res.status(200).json({slug: newDs});
 }));
 
+router.get('/orgs/:org/ds/:ds/stamp', security.allowDatasetRead, asyncHandle(async (req, res) => {
+    res.json(await ddb.getStamp(req.ddbPath));
+}));
+
 router.get('/orgs/:org/ds/:ds/meta/get/:key', security.allowDatasetRead, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.get(req.ddbPath, req.query.path, req.params.key));
 }));
@@ -245,6 +250,9 @@ router.post('/orgs/:org/ds/:ds/meta/remove', formDataParser, security.allowDatas
 }));
 router.post('/orgs/:org/ds/:ds/meta/unset', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.remove(req.ddbPath, formOrQueryParam(req, "path"), formOrQueryParam(req, "key")));
+}));
+router.post('/orgs/:org/ds/:ds/meta/dump', security.allowDatasetRead, asyncHandle(async (req, res) => {
+    res.json(await ddb.meta.dump(req.ddbPath, formOrQueryParam(req, "ids")));
 }));
 
 router.post('/orgs/:org/ds/:ds/obj', uploadParser("file"), security.allowDatasetWrite, asyncHandle(async (req, res) => {
