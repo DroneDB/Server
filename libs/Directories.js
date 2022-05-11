@@ -14,12 +14,6 @@ class Directories{
         [this.data, this.tmp].forEach(p => {
             if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
         });
-
-        if (Mode.singleDB){
-            logger.info(`Serving ddb database: ${storagePath}`);
-        }else{
-            logger.info(`Using storage path: ${storagePath}`);
-        }
     }
 
     static get data(){

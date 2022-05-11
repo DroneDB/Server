@@ -1,19 +1,21 @@
 const config = require('../config');
-const fs = require('fs');
 const logger = require('./logger');
 const ddb = require('../vendor/ddb');
-
+const { fsReaddir, fsLstat } = require('./fs');
 let singleDB = false;
+
 class Mode{
     static get singleDB(){
         return singleDB;
     }
 
     static async initialize(){
+        const { storagePath } = config;
+
         try{
-            if (!fs.lstatSync(config.storagePath).isDirectory()) throw new Error();
+            if (!(await fsLstat(storagePath)).isDirectory()) throw new Error();
         }catch(e){
-            logger.error(`${config.storagePath} is not a directory?`);
+            logger.error(`${storagePath} is not a directory?`);
             process.exit(1);
         }
 
@@ -23,9 +25,34 @@ class Mode{
         //      - Is empty - or -
         //      - Contains subfolders (one for each organization/project)
 
-        const info = await ddb.info(config.storagePath, { withHash: false, stoponError: true });
+        const info = await ddb.info(storagePath, { withHash: false, stoponError: true });
         if (info[0].type === ddb.entry.type.DRONEDB){
+            logger.info(`Serving existing ddb database: ${storagePath}`);
             singleDB = true;
+        }else if (info[0].type === ddb.entry.type.DIRECTORY){
+            // Empty directory? full server mode
+            const entries = await fsReaddir(storagePath);
+            const emptyDir = entries.length === 0;
+
+            if (emptyDir && !config.single){
+                logger.info(`Running full server using storage path: ${storagePath}`);
+            }else{
+                // Initialize database
+                singleDB = true;
+
+                logger.info(`Initializing ddb database: ${storagePath}`);
+                await ddb.init(storagePath);
+
+                logger.info("Building index")
+                const entries = await ddb.add(storagePath, ".", { recursive: true }, entry => {
+                    logger.info(`${entry.path}`);
+                    return true;
+                });
+                logger.info(`Added ${entries.length} entries`);
+                
+                logger.info("Building assets")
+                await ddb.build(storagePath);
+            }
         }
     }
 }

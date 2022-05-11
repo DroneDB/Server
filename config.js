@@ -22,7 +22,7 @@ Options:
 	--ssl-cert	Path to cert for SSL. (default: none)
 	--ssl-key	Path to key for SSL. (default: none)
 	--cleanup-uploads-after <number> Number of minutes that elapse before deleting unfinished uploads. Set this value to the maximum time you expect a dataset to be uploaded. (default: 2880) 
-	--test Enable test mode. This can be useful during development or testing (default: false)
+	--single	Serve only the directory specified by storage-path, even if it's empty. (default: run full server when storage path is an empty directory)
 	--powercycle	When set, the application exits immediately after powering up. Useful for testing launch and compilation issues.
 Log Levels: 
 error | debug | info | verbose | debug | silly 
@@ -72,7 +72,7 @@ config.remoteAuth = argv['remote-auth'] || fromConfigFile("remote-auth", "https:
 config.sslCert = argv['ssl-cert'] || fromConfigFile("ssl-cert", "");
 config.sslKey = argv['ssl-key'] || fromConfigFile("ssl-key", "");
 config.ssl = config.sslCert && config.sslKey;
-config.publicAddress = argv['public-address'] || fromConfigFile("public-address", "");
+config.single = argv.single || fromConfigFile("single", false);
 config.powercycle = argv.powercycle || fromConfigFile("powercycle", false);
 
 module.exports = config;

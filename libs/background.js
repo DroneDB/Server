@@ -2,6 +2,7 @@ const Directories = require('./Directories');
 const { fsReaddir, fsStat, fsRm, fsExists } = require('./fs');
 const logger = require('./logger');
 const path = require('path');
+const config = require('../config');
 
 class Background{
     static initialize(){
@@ -24,7 +25,7 @@ class Background{
         
                 let stats = await fsStat(tmpPath);
                 const mtime = new Date(stats.mtime);
-                if (new Date().getTime() - mtime.getTime() > 1000 * 60 * 60 * 48){
+                if (new Date().getTime() - mtime.getTime() > 1000 * 60 * cleanupUploadsAfter){
                     logger.info("Cleaning up " + entry);
                     await fsRm(tmpPath, { recursive: true});
                 }
