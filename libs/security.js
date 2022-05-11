@@ -32,6 +32,7 @@ const allowOrgOwnerOrPublicOrgOnly = [userAuth, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
+
 const allowDatasetWrite = [userAuth, getDDBPath, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next();
@@ -39,6 +40,7 @@ const allowDatasetWrite = [userAuth, getDDBPath, function(req, res, next){
         res.status(401).json({error: "Unauthorized"});
     }
 }];
+const allowOrgWrite = allowDatasetWrite;
 
 const allowDatasetOwnerOrPasswordOnly = [userAuth, function(req, res, next){
     if (checkOrgOwner(req, res)){
@@ -93,6 +95,6 @@ module.exports = {
     allowDatasetOwnerOrPasswordOnly,
     allowDatasetWrite,
     allowDatasetRead,
-
+    allowOrgWrite,
     pathTraversalCheck
 };

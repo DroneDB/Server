@@ -2,17 +2,27 @@ const path = require('path');
 const { fsExists } = require('./fs');
 const Mode = require('./Mode');
 const Directories = require('./Directories');
-const ddb = require('../vendor/ddb');
+const { v4: uuidv4 } = require('uuid');
+
+function allowNewDDBPath(req, res, next){
+    req.allowNewDDBPath = true;
+    next();
+}
 
 async function getDDBPath(req, res, next){
+    const { org, ds } = req.params;
+
     if (Mode.singleDB){
-        req.ddbPath = Directories.singleDBPath;
-        next();
-        return;
+        if (org === "projects" && ds === path.basename(Directories.singleDBPath)){
+            req.ddbPath = Directories.singleDBPath;
+            next();
+            return;
+        }else{
+            res.status(400).json({error: "No dataset found"});
+            return;
+        }
     }
 
-    const { org, ds } = req.params;
-        
     req.ddbPath = path.join(Directories.storagePath, org, ds);
 
     // Path traversal check
@@ -22,7 +32,7 @@ async function getDDBPath(req, res, next){
     }
 
     // Dir check
-    if (!(await fsExists(req.ddbPath))){
+    if (!req.allowNewDDBPath && !(await fsExists(req.ddbPath))){
         res.status(400).json({error: "Invalid path"});
         return;
     }
@@ -52,8 +62,14 @@ const asyncHandle = func => (req, res, next) => {
     }
 };
 
-module.exports = {
-    getDDBPath,
+const assignUUID = (req, res, next) => {
+    req.id = uuidv4().replace(/-/g, '');
+    next();
+}
 
+module.exports = {
+    allowNewDDBPath,
+    getDDBPath,
+    assignUUID,
     asyncHandle
 };

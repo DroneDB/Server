@@ -53,6 +53,6 @@ module.exports = {
     },
 
     tmpPath: function(extension = ".txt"){
-        return path.join(os.tmpdir(), `minireg_${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}${extension}`);
+        return path.join(os.tmpdir(), `ddb_server_${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}${extension}`);
     }
 };

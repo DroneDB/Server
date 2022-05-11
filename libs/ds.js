@@ -12,24 +12,8 @@ const { formDataParser, uploadParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
 const { basicAuth } = require('./basicauth');
-
-const formOrQueryParam = (req, param, defaultValue = "") => {
-    if (req.query[param] !== undefined) return req.query[param];
-    else if (req.body && req.body[param] !== undefined) return req.body[param];
-    else return defaultValue;
-};
-
-const checkAllowedPath = (ddbPath, inputPath) => {
-    security.pathTraversalCheck(ddbPath, inputPath);
-
-    // Don't allow direct writes / reads to .ddb subfolders
-    if (path.resolve(ddbPath, inputPath).indexOf(path.join(ddbPath, ".ddb")) === 0) throw new Error(`Invalid path: ${inputPath}`);
-}
-const checkAllowedBuildPath = (ddbPath, inputPath) => {
-    security.pathTraversalCheck(ddbPath, inputPath);
-
-    if (path.resolve(ddbPath, inputPath).indexOf(path.join(ddbPath, ".ddb")) !== 0) throw new Error(`Invalid build path: ${inputPath}`);
-}
+const { formOrQueryParam } = require('./requtils');
+const { checkAllowedPath, checkAllowedBuildPath } = require('./ds_security');
 
 const ddbUrlFromReq = (req) => {
     return `${req.secure ? "ddb" : "ddb+unsafe"}://${req.headers.host}/${req.params.org}/${req.params.ds}`;
@@ -323,6 +307,8 @@ router.get('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.a
 
     res.sendFile(path.resolve(path.join(req.ddbPath, buildPath)));
 }));
+
+// TODO: add push/init, push/upload, push/commit endpoints
 
 
 module.exports = {

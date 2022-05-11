@@ -18,6 +18,7 @@ const share = require('./libs/share');
 const ds = require('./libs/ds');
 const orgs = require('./libs/orgs');
 const users = require('./libs/users');
+const push = require('./libs/push');
 
 app.use(cookieParser());
 
@@ -28,6 +29,8 @@ app.use(users.api);
 app.use(share.api);
 app.use(orgs.api);
 app.use(ds.api);
+app.use(push.api);
+
 app.use(express.static('vendor/hub/build'));
 
 app.enable('trust proxy');

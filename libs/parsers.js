@@ -1,28 +1,37 @@
 const multer = require('multer');
+const Directories = require('./Directories');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 
+const uploadPath = (options) => {
+    return options.destPath !== undefined ? 
+        options.destPath :
+        path.join(Directories.tmp, "uploads");
+}
+
 const uploadParser = (field, options = {}) => {
-    return [multer({
+    const chain = [multer({
         storage: multer.diskStorage({
             destination: (req, file, cb) => {
-                const folderPath = path.join("tmp", "uploads");
+                const destPath = uploadPath(options);
 
-                fs.exists(folderPath, exists => {
+                fs.exists(destPath, exists => {
                     if (!exists) {
-                        fs.mkdir(folderPath, undefined, () => {
-                            cb(null, folderPath);
+                        fs.mkdir(destPath, undefined, () => {
+                            cb(null, destPath);
                         });
                     } else {
-                        cb(null, folderPath);
+                        cb(null, destPath);
                     }
                 });
             },
             filename: (req, file, cb) => {
+                const destPath = uploadPath(options);
+
                 const filename = uuidv4();
-                req.filePath = path.join("tmp", "uploads", filename);
+                req.filePath = path.join(destPath, filename);
 
                 cb(null, filename);
             }
@@ -33,6 +42,12 @@ const uploadParser = (field, options = {}) => {
         }
         next();
     }];
+
+    if (options.formData){
+        chain.push(bodyParser.urlencoded({extended: false}));
+    }
+
+    return chain;
 };
 
 module.exports = {

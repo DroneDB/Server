@@ -2,7 +2,6 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const rmdir = require('rimraf');
 const Directories = require('./Directories');
 const mv = require('mv');
 const async = require('async');
@@ -13,13 +12,7 @@ const express = require('express');
 const router = express.Router();
 const { userAuth } = require('./users');
 const { formDataParser } = require('./parsers');
-
-const removeDirectory = function(dir, cb = () => {}){
-    fs.stat(dir, (err, stats) => {
-        if (!err && stats.isDirectory()) rmdir(dir, cb); // ignore errors, don't wait
-        else cb(err);
-    });
-};
+const { assignUUID } = require('./middleware');
 
 const upload = multer({
     storage: multer.diskStorage({
@@ -44,11 +37,6 @@ const upload = multer({
         }
     })
 });
-
-const assignUUID = (req, res, next) => {
-    req.id = uuidv4().replace(/-/g, '');
-    next();
-}
 
 const getUUID = (req, res, next) => {
     req.id = req.params.uuid;
@@ -208,7 +196,7 @@ const handleInit = (req, res) => {
     // Print error message and cleanup
     const die = (error) => {
         res.json({error});
-        removeDirectory(srcPath);
+        fs.rm(srcPath, { recursive: true });
     };
 
     const t = tag.parseOrCreateTag(req.body.tag);
