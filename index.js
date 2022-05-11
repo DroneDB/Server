@@ -10,6 +10,7 @@ const authProviders = require('./libs/authProviders');
 const Mode = require('./libs/Mode');
 const Directories = require('./libs/Directories');
 const Hub = require('./libs/hub');
+const Background = require('./libs/background');
 
 const express = require('express');
 const app = express();
@@ -66,6 +67,7 @@ let commands = [
         Directories.initialize();
         Hub.initialize();
         db.initialize();
+        Background.initialize();
         jwt.initialize();
         
         authProviders.initialize(config.auth, config.remoteAuth);

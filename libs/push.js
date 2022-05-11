@@ -131,7 +131,7 @@ router.post('/orgs/:org/ds/:ds/push/commit', allowDatasetWrite, formDataParser, 
 
     await fsRm(req.tmpPath, { recursive: true });
 
-    // TODO: trigger build
+    ddb.build(req.ddbPath);
 
     res.status(200).send("");
 }));

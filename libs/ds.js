@@ -257,6 +257,10 @@ router.post('/orgs/:org/ds/:ds/obj', uploadParser("file"), security.allowDataset
     // Add to index
     const entries = await ddb.add(req.ddbPath, req.body.path);
     res.json(entries[0]);
+
+    console.log("BUILDING" + req.body.path);
+    ddb.build(req.ddbPath, { path: req.body.path });
+    ddb.build(req.ddbPath, { pendingOnly: true });
 }));
 
 router.delete('/orgs/:org/ds/:ds/obj', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
@@ -297,8 +301,8 @@ router.head('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.
     const buildPath = path.join(".ddb", "build", req.params.hash, p);
     checkAllowedBuildPath(req.ddbPath, buildPath);
 
-    if (await fsExists(path.join(req.ddbPath, buildPath))) res.status(200).send("");
-    else res.status(404).send("");
+    if (await fsExists(path.join(req.ddbPath, buildPath))) res.status(200).send();
+    else res.status(404).send();
 }));
 router.get('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.allowDatasetRead, asyncHandle(async (req, res) => {
     const p = req.params['0'] !== undefined ? req.params['0'] : "";
@@ -307,9 +311,6 @@ router.get('/orgs/:org/ds/:ds/build/:hash/*', asyncHandle(basicAuth), security.a
 
     res.sendFile(path.resolve(path.join(req.ddbPath, buildPath)));
 }));
-
-// TODO: add push/init, push/upload, push/commit endpoints
-
 
 module.exports = {
     api: router

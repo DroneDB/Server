@@ -17,7 +17,10 @@ const fsMkdir = util.promisify(fs.mkdir);
 const fsRm = util.promisify(fs.rm);
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsReadFile = util.promisify(fs.readFile);
+const fsReaddir = util.promisify(fs.readdir);
+const fsStat = util.promisify(fs.stat);
 
 module.exports = {
-    fsExists, fsLstat, fsRename, fsMove, fsMkdir, fsRm, fsWriteFile, fsReadFile
+    fsExists, fsLstat, fsRename, fsMove, fsMkdir, fsRm, fsWriteFile, 
+    fsReadFile, fsReaddir, fsStat
 };
