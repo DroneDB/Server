@@ -22,7 +22,7 @@ Options:
 	--ssl-cert	Path to cert for SSL. (default: none)
 	--ssl-key	Path to key for SSL. (default: none)
 	--cleanup-uploads-after <number> Number of minutes that elapse before deleting unfinished uploads. Set this value to the maximum time you expect a dataset to be uploaded. (default: 2880) 
-	--single	Serve only the directory specified by storage-path, even if it's empty. (default: run full server when storage path is an empty directory)
+	--single	Serve only the directory specified by storage-path, even if it's empty. (default: run server when storage path is an empty directory)
 	--powercycle	When set, the application exits immediately after powering up. Useful for testing launch and compilation issues.
 Log Levels: 
 error | debug | info | verbose | debug | silly 

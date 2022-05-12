@@ -1,9 +1,11 @@
 const Mode = require('./Mode');
+const Directories = require('./Directories');
 const fs = require('fs');
 const config = require('../config');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
+const { noCache } = require('./middleware');
 const router = express.Router();
 
 class Hub{
@@ -38,6 +40,10 @@ class Hub{
                 `disableDatasetCreation: true`,
                 `disableDatasetDeletion: true`
             ]);
+        }else{
+            opts = opts.concat([
+                `disableStorageInfo: true`
+            ]);
         }
         
         index = index.replace("// #HUB OPTIONS#", opts.join(","));
@@ -53,8 +59,13 @@ class Hub{
         router.get('/r', handler);
         router.get('/r/*', handler);
         router.get('/login', handler);
-        router.get('/', (req, res) => {
-            res.redirect(301, '/login');
+
+        router.get('/', noCache, (req, res) => {
+            if (Mode.singleDB){
+                res.redirect(301, `/r/projects/${path.basename(Directories.singleDBPath)}`);
+            }else{
+                res.redirect(301, '/login');
+            }
         });
         
         if (!Mode.singleDB){

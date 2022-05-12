@@ -16,11 +16,10 @@ async function getDDBPath(req, res, next){
         if (org === "projects" && ds === path.basename(Directories.singleDBPath)){
             req.ddbPath = Directories.singleDBPath;
             next();
-            return;
         }else{
             res.status(400).json({error: "No dataset found"});
-            return;
         }
+        return;
     }
 
     req.ddbPath = path.join(Directories.storagePath, org, ds);
@@ -67,9 +66,15 @@ const assignUUID = (req, res, next) => {
     next();
 }
 
+const noCache = (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    next();
+};
+
 module.exports = {
     allowNewDDBPath,
     getDDBPath,
     assignUUID,
-    asyncHandle
+    asyncHandle,
+    noCache
 };

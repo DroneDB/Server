@@ -1,13 +1,12 @@
 const security = require('./security');
 const Mode = require('./Mode');
-const Consts = require('./Consts');
 const tag = require('./tag');
 const express = require('express');
 const router = express.Router();
 const ddb = require('../vendor/ddb');
 const Directories = require('./Directories');
 const path = require('path');
-const { fsMove, fsMkdir, fsRm, fsExists } = require('./fs');
+const { fsMove, fsMkdir, fsRm, fsExists, fsStat, fsReaddir, fsCreationDate } = require('./fs');
 const { formDataParser, uploadParser } = require('./parsers');
 const { getDDBPath, asyncHandle } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
@@ -37,68 +36,54 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
         const name = path.basename(info[0].path);
         res.json([{
             slug: tag.filterComponentChars(name.length ? name : 'default'),
-            creationDate: Consts.startupTime.toISOString(),
+            creationDate: await fsCreationDate(Directories.singleDBPath).toISOString(),
             size: info[0].size,
             properties: info[0].properties
         }]);
         return;
     }
 
-    // const { org } = req.params;
-   
-    // const orgDir = path.join(Directories.storagePath, org);
-
+    const { org } = req.params;
+    
     // // Path traversal check
-    // if (orgDir.indexOf(Directories.storagePath) !== 0){
-    //     cb(new Error("Invalid path"));
-    //     return;
-    // }
+    security.pathTraversalCheck(Directories.storagePath, org);
+    const orgDir = path.join(Directories.storagePath, org);
+    if (await fsExists(orgDir)){
+        const files = await fsReaddir(orgDir);
+        const entries = (await ddb.info(files.map(f => path.join(orgDir, f)))).filter(e => e.type === ddb.entry.type.DRONEDB);
+        const datasets = [];
+        
+        for (let i = 0; i < entries.length; i++){
+            const e = entries[i];
 
-    // fs.exists(orgDir, exists => {
-    //     if (exists){
-    //         fs.readdir(orgDir, { withFileTypes: true }, (err, files) => {
-    //             if (err) res.status(400).json({error: err.message});
-    //             else{
-    //                 res.json(files.filter(f => f.isDirectory()).map(f => {
-    //                     return {
-    //                         slug: f.name,
-    //                         creationDate: new Date(fs.statSync(path.join(orgDir, f.name)).ctime.getTime()).toISOString()
-    //                         // name: path.basename(f)
-    //                         // TODO: more?
-    //                     };
-    //                 }));
-    //             }
-    //         });
-    //     }else{
-    //         res.json([]);
-    //     }
-    // });
+            const name = path.basename(e.path);
+            datasets.push({
+                slug: name,
+                creationDate: await (await fsCreationDate(path.join(orgDir, name))).toISOString(),
+                size: e.size,
+                properties: e.properties
+            });
+        }
+
+        res.json(datasets);
+    }else{
+        res.json([]);
+    }
 }));
 
 router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHandle(async (req, res) => {
-    if (Mode.singleDB){
-        // Single database
-        const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
-        info[0].depth = 0;
-        info[0].path = ddbUrlFromReq(req);
-        info[0].hash = null;
-        ddbUrlFromReq(req, info);
-        res.json(info);
-        return;
-    }
-
-    // TODO!
+    const info = await ddb.info(req.ddbPath, { withHash: false, stoponError: true });
+    info[0].depth = 0;
+    info[0].path = ddbUrlFromReq(req);
+    info[0].hash = null;
+    res.json(info);
 }));
 
 router.put('/orgs/:org/ds/:ds', formDataParser, getDDBPath, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     const { name, isPublic } = req.body;
 
     if (isPublic !== undefined) await ddb.chattr(req.ddbPath, {public: Boolean(isPublic)});
-    if (Mode.singleDB){
-        if (name !== undefined) await ddb.meta.set(req.ddbPath, "", "name", name);
-    }else{
-        // TODO
-    }
+    if (name !== undefined) await ddb.meta.set(req.ddbPath, "", "name", name);
 
     res.json({name, isPublic});
 }));
@@ -258,7 +243,6 @@ router.post('/orgs/:org/ds/:ds/obj', uploadParser("file"), security.allowDataset
     const entries = await ddb.add(req.ddbPath, req.body.path);
     res.json(entries[0]);
 
-    console.log("BUILDING" + req.body.path);
     ddb.build(req.ddbPath, { path: req.body.path });
     ddb.build(req.ddbPath, { pendingOnly: true });
 }));

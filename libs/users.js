@@ -68,7 +68,7 @@ router.get('/users/storage', async (req, res) => {
         const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
         res.json({"total":null,"used":info[0].size});
     }else{
-        res.json({"total":null,"used":0}); // TODO?
+        res.status(404).send("");
     }
 });
 

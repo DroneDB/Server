@@ -9,6 +9,10 @@ class Mode{
         return singleDB;
     }
 
+    static get fullServer(){
+        return !this.singleDB;
+    }
+
     static async initialize(){
         const { storagePath } = config;
 
@@ -30,12 +34,14 @@ class Mode{
             logger.info(`Serving existing ddb database: ${storagePath}`);
             singleDB = true;
         }else if (info[0].type === ddb.entry.type.DIRECTORY){
-            // Empty directory? full server mode
+            // Empty directory or directory containing 
+            // 'server.db'? full server mode
             const entries = await fsReaddir(storagePath);
             const emptyDir = entries.length === 0;
+            const hasServerDb = entries.find(e => e === 'server.db');
 
-            if (emptyDir && !config.single){
-                logger.info(`Running full server using storage path: ${storagePath}`);
+            if ((emptyDir || hasServerDb) && !config.single){
+                logger.info(`Running server using storage path: ${storagePath}`);
             }else{
                 // Initialize database
                 singleDB = true;
@@ -51,7 +57,11 @@ class Mode{
                 logger.info(`Added ${entries.length} entries`);
                 
                 logger.info("Building assets")
-                await ddb.build(storagePath);
+                await ddb.build(storagePath, {}, p => {
+                    logger.info(`${p}`);
+                });
+
+                await ddb.chattr(storagePath, { public: true });
             }
         }
     }

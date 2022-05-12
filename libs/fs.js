@@ -20,7 +20,17 @@ const fsReadFile = util.promisify(fs.readFile);
 const fsReaddir = util.promisify(fs.readdir);
 const fsStat = util.promisify(fs.stat);
 
+const fsCreationDate = async (path) => {
+    return new Date((await fsStat(path)).ctime.getTime());
+};
+
+const fsIsDirectory = async (path) => {
+    return (await fsStat(path)).isDirectory();
+};
+
 module.exports = {
     fsExists, fsLstat, fsRename, fsMove, fsMkdir, fsRm, fsWriteFile, 
-    fsReadFile, fsReaddir, fsStat
+    fsReadFile, fsReaddir, fsStat,
+
+    fsCreationDate, fsIsDirectory
 };

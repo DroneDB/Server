@@ -1,7 +1,6 @@
 const config = require('../config');
 const path = require('path');
 const fs = require('fs');
-const logger = require('./logger');
 const os = require('os');
 const Mode = require('./Mode');
 
@@ -36,7 +35,7 @@ class Directories{
     }
 
     static get tmp(){
-        return path.join(this.data, "tmp")
+        return path.join(this.data, ".tmp")
     }
 }
 

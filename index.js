@@ -87,7 +87,7 @@ let commands = [
 
         server.listen(config.port, err => {
             if (!err){
-                logger.info('Server has started on port ' + String(config.port));
+                logger.info('Server has started on http://0.0.0.0:' + String(config.port));
                 resolve();
             }else reject(err);
         });
