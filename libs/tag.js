@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 
 const PUBLIC_ORG_NAME = "public";
-const TagComponentInvalidChars = /[^A-Za-z0-9_-]/g;
 
 module.exports = {
     PUBLIC_ORG_NAME,
@@ -38,9 +37,5 @@ module.exports = {
 
     dump: function(tag){
         return `${tag.organization}/${tag.dataset}`;
-    },
-
-    filterComponentChars: function(input){
-        return input.replace(TagComponentInvalidChars, "");
     }
 };

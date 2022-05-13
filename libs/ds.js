@@ -35,7 +35,7 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
         const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
         const name = path.basename(info[0].path);
         res.json([{
-            slug: tag.filterComponentChars(name.length ? name : 'default'),
+            slug: ddb.Tag.filterComponentChars(name.length ? name : 'default'),
             creationDate: (await fsCreationDate(Directories.singleDBPath)).toISOString(),
             size: info[0].size,
             properties: info[0].properties
@@ -77,7 +77,7 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
     const { org } = req.params;
     let { slug, name, isPublic } = req.body;
 
-    if (!slug) throw new Error("Missing slug");
+    if (!ddb.Tag.validComponent(slug)) throw new Error("Invalid slug");
     if (name !== undefined) name = String(name);
     if (isPublic !== undefined) isPublic = false;
 
@@ -197,7 +197,9 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
         return;
     }
 
-    if (!Tag.validComponent(req.body.slug)){
+    const slug = ddb.Tag.filterComponentChars(req.body.slug);
+    console.log(slug);
+    if (!ddb.Tag.validComponent(slug)){
         throw new Error(`Invalid name. must be valid ASCII and may contain lowercase 
             and uppercase letters, digits, underscores, periods and dashes.
             A tag name may not start with a period or a dash and may contain 
@@ -205,17 +207,15 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
     }
 
     const { org, ds } = req.params;
-    const newDs = req.body.slug;
-
     
     // Check if name already exists
     const oldPath = path.join(Directories.storagePath, org, ds);
     if (oldPath.indexOf(path.join(Directories.storagePath, org)) !== 0) throw new Error("Invalid dataset");
     
-    const newPath = path.join(Directories.storagePath, org, newDs);
+    const newPath = path.join(Directories.storagePath, org, slug);
     if (newPath === oldPath){
         // Nothing to do
-        res.status(200).json({slug: newDs});
+        res.status(200).json({slug});
         return;
     }
 
@@ -225,7 +225,7 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
 
     await fsMove(oldPath, newPath);
 
-    res.status(200).json({slug: newDs});
+    res.status(200).json({slug});
 }));
 
 router.get('/orgs/:org/ds/:ds/stamp', security.allowDatasetRead, asyncHandle(async (req, res) => {
