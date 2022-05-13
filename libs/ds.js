@@ -8,7 +8,7 @@ const Directories = require('./Directories');
 const path = require('path');
 const { fsMove, fsMkdir, fsRm, fsExists, fsStat, fsReaddir, fsCreationDate } = require('./fs');
 const { formDataParser, uploadParser } = require('./parsers');
-const { getDDBPath, asyncHandle } = require('./middleware');
+const { asyncHandle, allowNewDDBPath, getDsFromFormData } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
 const { basicAuth } = require('./basicauth');
 const { formOrQueryParam } = require('./requtils');
@@ -36,7 +36,7 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
         const name = path.basename(info[0].path);
         res.json([{
             slug: tag.filterComponentChars(name.length ? name : 'default'),
-            creationDate: await fsCreationDate(Directories.singleDBPath).toISOString(),
+            creationDate: (await fsCreationDate(Directories.singleDBPath)).toISOString(),
             size: info[0].size,
             properties: info[0].properties
         }]);
@@ -59,7 +59,7 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
             const name = path.basename(e.path);
             datasets.push({
                 slug: name,
-                creationDate: await (await fsCreationDate(path.join(orgDir, name))).toISOString(),
+                creationDate: (await fsCreationDate(path.join(orgDir, name))).toISOString(),
                 size: e.size,
                 properties: e.properties
             });
@@ -71,7 +71,41 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
     }
 }));
 
-router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHandle(async (req, res) => {
+router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), security.allowOrgWrite, asyncHandle(async (req, res) => {
+    if (Mode.singleDB) throw new Error("Not allowed in singleDB mode");
+
+    const { org } = req.params;
+    let { slug, name, isPublic } = req.body;
+
+    if (!slug) throw new Error("Missing slug");
+    if (name !== undefined) name = String(name);
+    if (isPublic !== undefined) isPublic = false;
+
+    slug = String(slug);
+    isPublic = Boolean(isPublic);
+
+    const orgPath = path.join(Directories.storagePath, org);
+    const dsPath = security.safePathJoin(orgPath, slug);
+
+    if (await fsExists(dsPath)) throw new Error(`${slug} already exists`);
+
+    await fsMkdir(dsPath);
+    await ddb.init(dsPath);
+
+    if (name !== undefined) await ddb.meta.set(dsPath, "", "name", name);
+    await ddb.chattr(dsPath, { public: isPublic });
+
+    const info = await ddb.info(dsPath);
+
+    res.json({
+        slug: path.basename(info[0].path),
+        size: 0,
+        properties: info[0].properties,
+        creationDate: (await fsCreationDate(dsPath)).toISOString()
+    });
+}));
+
+router.get('/orgs/:org/ds/:ds', security.allowDatasetRead, asyncHandle(async (req, res) => {
     const info = await ddb.info(req.ddbPath, { withHash: false, stoponError: true });
     info[0].depth = 0;
     info[0].path = ddbUrlFromReq(req);
@@ -79,7 +113,7 @@ router.get('/orgs/:org/ds/:ds', getDDBPath, security.allowDatasetRead, asyncHand
     res.json(info);
 }));
 
-router.put('/orgs/:org/ds/:ds', formDataParser, getDDBPath, security.allowDatasetWrite, asyncHandle(async (req, res) => {
+router.put('/orgs/:org/ds/:ds', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     const { name, isPublic } = req.body;
 
     if (isPublic !== undefined) await ddb.chattr(req.ddbPath, {public: Boolean(isPublic)});

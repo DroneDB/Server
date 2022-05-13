@@ -90,11 +90,17 @@ const pathTraversalCheck = (ddbPath, inputPath) => {
     }
 }
 
+const safePathJoin = (knownPath, inputPath) => {
+    pathTraversalCheck(knownPath, inputPath);
+    return path.join(knownPath, inputPath);
+}
+
 module.exports = {
     allowOrgOwnerOrPublicOrgOnly,
     allowDatasetOwnerOrPasswordOnly,
     allowDatasetWrite,
     allowDatasetRead,
     allowOrgWrite,
-    pathTraversalCheck
+    pathTraversalCheck,
+    safePathJoin
 };
