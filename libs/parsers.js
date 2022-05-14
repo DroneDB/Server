@@ -2,20 +2,23 @@ const multer = require('multer');
 const Directories = require('./Directories');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
-const path = require('path');
 const fs = require('fs');
+const { safePathJoin } = require('./pathsec');
+const path = require('path');
+const { asyncHandle } = require('./middleware');
+const { fsMkdir, fsMove } = require('./fs');
 
-const uploadPath = (options) => {
-    return options.destPath !== undefined ? 
-        options.destPath :
-        path.join(Directories.tmp, "uploads");
+const uploadRootPath = (req, options) => {
+    if (typeof options.destPath === "string") return options.destPath;
+    else if (typeof options.destPath === "function") return options.destPath(req);
+    else return path.join(Directories.tmp, "uploads");
 }
 
 const uploadParser = (field, options = {}) => {
     const chain = [multer({
         storage: multer.diskStorage({
             destination: (req, file, cb) => {
-                const destPath = uploadPath(options);
+                const destPath = uploadRootPath(req, options);
 
                 fs.exists(destPath, exists => {
                     if (!exists) {
@@ -28,12 +31,15 @@ const uploadParser = (field, options = {}) => {
                 });
             },
             filename: (req, file, cb) => {
-                const destPath = uploadPath(options);
+                try{
+                    const destPath = uploadRootPath(req, options);
+                    const filename = uuidv4();
 
-                const filename = uuidv4();
-                req.filePath = path.join(destPath, filename);
-
-                cb(null, filename);
+                    req.filePath = safePathJoin(destPath, filename);
+                    cb(null, filename);
+                }catch(e){
+                    cb(e);
+                }
             }
         })
     }).single(field), (req, res, next) => {
@@ -45,6 +51,24 @@ const uploadParser = (field, options = {}) => {
 
     if (options.formData){
         chain.push(bodyParser.urlencoded({extended: false}));
+    }
+
+    if (options.filePath){
+        chain.push(asyncHandle(async (req, res, next) => {
+            let filePath = "";
+            if (typeof options.filePath === "string") filePath = options.filePath;
+            else if (typeof options.filePath === "function") filePath = options.filePath(req);
+            
+            const destPath = uploadRootPath(req, options);
+            const fp = safePathJoin(destPath, filePath);
+
+            // Create parent directories, move file
+            await fsMkdir(path.dirname(fp), { recursive: true });
+            await fsMove(req.filePath, fp);
+            req.filePath = fp;
+
+            next();
+        }));
     }
 
     return chain;

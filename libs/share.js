@@ -1,209 +1,35 @@
-const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const Directories = require('./Directories');
-const mv = require('mv');
-const async = require('async');
 const tag = require('./tag');
 const ddb = require('../vendor/ddb');
 const { PUBLIC_ORG_NAME } = require('./tag');
 const express = require('express');
 const router = express.Router();
 const { userAuth } = require('./users');
-const { formDataParser } = require('./parsers');
-const { assignUUID } = require('./middleware');
+const { formDataParser, uploadParser } = require('./parsers');
+const { assignUUID, asyncHandle } = require('./middleware');
+const { fsRm, fsMkdir, fsWriteFile, fsExists, fsMove, fsReadFile } = require('./fs');
 
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            const folderPath = path.join("tmp", req.id);
-
-            fs.exists(folderPath, exists => {
-                if (!exists) {
-                    fs.mkdir(folderPath, undefined, () => {
-                        cb(null, folderPath);
-                    });
-                } else {
-                    cb(null, folderPath);
-                }
-            });
-        },
-        filename: (req, file, cb) => {
-            const filename = uuidv4();
-            req.tmpUploadFilePath = path.join("tmp", req.id, filename);
-
-            cb(null, filename);
-        }
-    })
-});
-
-const getUUID = (req, res, next) => {
+const getUUID = async (req, res, next) => {
     req.id = req.params.uuid;
-    if (!req.id) res.status(400).json({error: `Invalid uuid (not set)`});
+    if (!req.id) throw new Error("Invalid UUID (not set)");
 
-    const srcPath = path.join("tmp", req.id);
+    const srcPath = path.join(Directories.tmp, req.id);
     const bodyFile = path.join(srcPath, "__body.json");
 
-    fs.access(bodyFile, fs.F_OK, err => {
-        if (err) res.json({error: `Invalid uuid (not found)`});
-        else next();
-    });
-}
-
-const uploadFile = [upload.single("file"), (req, res, next) => {
-    let ddbPath;
-    let filePath; 
-
-    try{
-        if (!req.tmpUploadFilePath){
-            throw new Error("Missing tmp upload file path");
-        }
-        if (!req.body.path){
-            throw new Error("path field missing");
-        }
-
-        if (!req.body.path === "__body.json"){
-            throw new Error("invalid path");
-        }
-
-        ddbPath = path.join("tmp", req.id);
-        filePath = path.join(ddbPath, req.body.path);
-        
-        // Path traversal check
-        if (filePath.indexOf(ddbPath) !== 0){
-            throw new Error("Invalid path");
-        }
-    }catch(e){
-        res.status(400).json({error: e.message});
-        return;
-    }
+    if (!await fsExists(bodyFile)) throw new Error("Invalid UUID");
     
-    const folderPath = path.dirname(filePath);
-
-    async.series([
-        cb => {
-            // Create dir
-            fs.exists(folderPath, exists => {
-                if (!exists) {
-                    fs.mkdir(folderPath, {recursive: true}, () => {
-                        cb(null, folderPath);
-                    });
-                } else {
-                    cb(null, folderPath);
-                }
-            });
-        },
-
-        // TODO: remove from ddb index (allows re-uploads)
-
-        cb => mv(req.tmpUploadFilePath, filePath, cb),
-        cb => {
-            req.filePath = filePath;
-            cb();
-        }
-    ], (err, _) => {
-        if (err) res.status(400).json({error: err.message});
-        else next();
-    });
-}];
-
-
-const handleUpload = (req, res) => {
-    const ddbPath = path.join("tmp", req.id);
-
-    if (req.file){
-        ddb.add(ddbPath, req.filePath)
-            .then(entries => {
-                const e = entries.find(e => !ddb.entry.isDirectory(e));
-                if (e){
-                    res.json({
-                        hash: e.hash,
-                        size: e.size,
-                        path: e.path
-                    });
-                }else{
-                    res.status(400).json({error: "Cannot add file (already added?)"});
-                }
-            })
-            .catch(e => {
-                res.status(400).json({error: e.message});
-            });
-    }else{
-        res.status(400).json({error: "Need to upload 1 file."});
-    }
+    next();
 }
 
-const handleCommit = (req, res) => {
-    const srcPath = path.join("tmp", req.id);
+router.post('/share/init', userAuth, assignUUID, formDataParser, asyncHandle(async (req, res) => {
+    const srcPath = path.join(Directories.tmp, req.id);
     const bodyFile = path.join(srcPath, "__body.json");
 
-    let body = {};
-    let tagComp = null;
-    let destDir = null;
-
-    async.series([
-        cb => {
-            fs.readFile(bodyFile, 'utf8', (err, data) => {
-                if (err) cb(err);
-                else{
-                    try{
-                        body = JSON.parse(data);
-                        fs.unlink(bodyFile, err => {
-                            if (err) cb(err);
-                            else cb(null, body);
-                        });
-                    }catch(e){
-                        cb(new Error("Malformed __body.json"));
-                    }
-                }
-            });
-        },
-
-        cb => {
-            tagComp = tag.parseOrCreateTag(body.tag);
-            destDir = path.join(Directories.storagePath, tagComp.organization, tagComp.dataset)
-            const parentDir = path.join(destDir, "..");
-
-            fs.stat(destDir, (err, stat) => {
-                if (err && err.code === 'ENOENT') fs.mkdir(parentDir, {recursive: true}, cb);
-                else{
-                    // Dir already exist, remove it
-                    rmdir(destDir, err => {
-                        if (err) cb(err);
-                        else fs.mkdir(parentDir, {recursive: true}, cb);
-                    });
-                }
-            });
-        }
-    ], (err) => {
-        if (err){
-            res.status(400).json({error: err.message});
-            return;
-        }
-
-        mv(srcPath, destDir, err => {
-            if (err) res.status(400).json({error: err.message});
-            else res.json({url: `/r/${tagComp.organization}/${tagComp.dataset}`, tag: tag.dump(tagComp)});
-        });
-    });
-}
-
-const handleInit = (req, res) => {
-    const srcPath = path.join("tmp", req.id);
-    const bodyFile = path.join(srcPath, "__body.json");
-
-    // Print error message and cleanup
-    const die = (error) => {
-        res.json({error});
-        fs.rm(srcPath, { recursive: true });
-    };
-
-    const t = tag.parseOrCreateTag(req.body.tag);
+    const t = tag.parseOrCreateTag(req.body.tag, req.id);
 
     // Fill organization if missing
     if (t.organization.trim() === "" || t.organization === PUBLIC_ORG_NAME){
-        // TODO: support for anonymous users
         t.organization = req.user.username;
     }
     
@@ -213,41 +39,70 @@ const handleInit = (req, res) => {
         return;
     }
 
-    async.series([
-        cb => {
-            fs.stat(srcPath, (err, stat) => {
-                if (err && err.code === 'ENOENT') fs.mkdir(srcPath, undefined, cb);
-                else cb(); // Dir already exists
+    try{
+        await fsMkdir(srcPath, { recursive: true});
+
+        // Update body tag
+        req.body.tag = tag.dump(t);
+
+        await fsWriteFile(bodyFile, JSON.stringify(req.body), {encoding: 'utf8'});
+        await ddb.init(srcPath);
+
+        // Set public
+        await ddb.chattr(srcPath, { public: true });
+        res.json({token: req.id});
+    }catch(err){
+        await fsRm(srcPath, { recursive: true });
+        throw err;
+    }
+}));
+
+router.post('/share/upload/:uuid', userAuth, asyncHandle(getUUID), uploadParser("file", { required: true, formData: true, 
+    destPath: (req) => { 
+        return path.join(Directories.tmp, req.id);
+    },
+    filePath: (req) => {
+        if (typeof req.body.path === "string") return req.body.path;
+        else throw new Error("Path missing");
+    }}), asyncHandle(async (req, res) => {
+        const ddbPath = path.join(Directories.tmp, req.id);
+
+        const entries = await ddb.add(ddbPath, req.filePath);
+        const e = entries.find(e => !ddb.entry.isDirectory(e));
+        if (e){
+            res.json({
+                hash: e.hash,
+                size: e.size,
+                path: e.path
             });
-        },
-        cb => {
-            // Update body tag
-            req.body.tag = tag.dump(t);
-
-            fs.writeFile(bodyFile, JSON.stringify(req.body), {encoding: 'utf8'}, cb);
-        },
-        cb => {
-            ddb.init(srcPath).then(() => cb())
-                             .catch(e => cb(e));
-        },
-        cb => {
-            // Set public
-            ddb.chattr(srcPath, { public: true })
-                    .then(() => cb())
-                    .catch(e => cb(e));
-        },
-        cb => {
-            res.json({token: req.id, maxUploadChunkSize: 2147483647});
-            cb();
+        }else{
+            throw new Error("Cannot add file (already added?)");
         }
-    ],  err => {
-        if (err) die(err.message);
-    });
-}
+}));
+router.post('/share/commit/:uuid', userAuth, getUUID, asyncHandle(async (req, res) => {
+    const srcPath = path.join(Directories.tmp, req.id);
+    const bodyFile = path.join(srcPath, "__body.json");
 
-router.post('/share/init', userAuth, assignUUID, formDataParser, handleInit);
-router.post('/share/upload/:uuid', userAuth, getUUID, uploadFile, handleUpload);
-router.post('/share/commit/:uuid', userAuth, getUUID, handleCommit);
+    let body = {};
+
+    const data = await fsReadFile(bodyFile, 'utf8');
+    body = JSON.parse(data);
+    await fsRm(bodyFile);
+
+    const tagComp = tag.parseOrCreateTag(body.tag, req.id);
+    const destDir = path.join(Directories.storagePath, tagComp.organization, tagComp.dataset)
+    const orgDir = path.join(destDir, "..");
+    if (!await fsExists(orgDir)){
+        await fsMkdir(orgDir, { recursive: true });
+        await ddb.init(orgDir);
+    }
+
+    await fsMove(srcPath, destDir);
+
+    ddb.build(destDir);
+
+    res.json({url: `/r/${tagComp.organization}/${tagComp.dataset}`, tag: tag.dump(tagComp)});
+}));
 
 
 module.exports = {

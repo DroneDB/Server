@@ -25,7 +25,7 @@ class Background{
         
                 let stats = await fsStat(tmpPath);
                 const mtime = new Date(stats.mtime);
-                if (new Date().getTime() - mtime.getTime() > 1000 * 60 * cleanupUploadsAfter){
+                if (new Date().getTime() - mtime.getTime() > 1000 * 60 * config.cleanupUploadsAfter){
                     logger.info("Cleaning up " + entry);
                     await fsRm(tmpPath, { recursive: true});
                 }

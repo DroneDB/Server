@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const Directories = require('./Directories');

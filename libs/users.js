@@ -9,6 +9,7 @@ const Directories = require('./Directories');
 const authProviders = require('./authProviders');
 const { formDataParser } = require('./parsers');
 const { jwtAuth, DEFAULT_EXPIRATION_HOURS } = jwt;
+const { asyncHandle } = require('./middleware');
 const ddb = require('../vendor/ddb');
 
 const login = async function(username, password, token = null){
@@ -36,19 +37,15 @@ const populateRoles = function(req, res, next){
 
 const userAuth = [jwtAuth, populateRoles];
 
-router.post('/users/authenticate', formDataParser, async (req, res) => {
-    try{
-        const userInfo = await login(req.body.username, req.body.password, req.body.token);
+router.post('/users/authenticate', formDataParser, asyncHandle(async (req, res) => {
+    const userInfo = await login(req.body.username, req.body.password, req.body.token);
 
-        res.json({
-            username: userInfo.username,
-            token: userInfo.token,
-            expires: parseInt(((new Date().getTime() + DEFAULT_EXPIRATION_HOURS * 60 * 60 * 1000) / 1000).toFixed(0)),    
-        });
-    }catch(e){
-        res.status(401).json({error: e.message});
-    }
-});
+    res.json({
+        username: userInfo.username,
+        token: userInfo.token,
+        expires: parseInt(((new Date().getTime() + DEFAULT_EXPIRATION_HOURS * 60 * 60 * 1000) / 1000).toFixed(0)),    
+    });
+}));
 
 router.post('/users/authenticate/refresh', userAuth, (req, res) => {
     try{
@@ -63,14 +60,14 @@ router.post('/users/authenticate/refresh', userAuth, (req, res) => {
     }
 });
 
-router.get('/users/storage', async (req, res) => {
+router.get('/users/storage', asyncHandle(async (req, res) => {
     if (Mode.singleDB){
         const info = await ddb.info(Directories.singleDBPath, { withHash: false, stoponError: true });
         res.json({"total":null,"used":info[0].size});
     }else{
         res.status(404).send("");
     }
-});
+}));
 
 
 function generateSalt() {

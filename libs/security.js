@@ -3,7 +3,11 @@ const { PUBLIC_ORG_NAME } = require('./tag');
 const logger = require('./logger');
 const { getDDBPath } = require('./middleware');
 const ddb = require('../vendor/ddb');
-const path = require('path');
+
+const allowAnonymous = function (req, res, next){
+    req.allowAnonymous = true;
+    next();
+};
 
 const checkOrgOwner = function(req, res){
     const { org } = req.params;
@@ -11,12 +15,15 @@ const checkOrgOwner = function(req, res){
     if (!org) throw new Error("Missing organization param");
 
     // Admins own everything
-    if (req.user.roles.indexOf("admin") !== -1) return true;
-    
-    return req.user.username && req.user.username == org;
+    if (req.user?.username){
+        if (req.user.roles.indexOf("admin") !== -1) return true;
+        return req.user.username && req.user.username == org;
+    }else{
+        return false;
+    }
 };
 
-const allowOrgOwnerOrPublicOrgOnly = [userAuth, function(req, res, next){
+const allowOrgOwnerOrPublicOrgOnly = [allowAnonymous, userAuth, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;
@@ -42,7 +49,7 @@ const allowDatasetWrite = [userAuth, getDDBPath, function(req, res, next){
 }];
 const allowOrgWrite = allowDatasetWrite;
 
-const allowDatasetOwnerOrPasswordOnly = [userAuth, function(req, res, next){
+const allowDatasetOwnerOrPasswordOnly = [allowAnonymous, userAuth, function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;
@@ -58,7 +65,7 @@ const allowDatasetOwnerOrPasswordOnly = [userAuth, function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const allowDatasetRead = [userAuth, getDDBPath, async function(req, res, next){
+const allowDatasetRead = [allowAnonymous, userAuth, getDDBPath, async function(req, res, next){
     if (checkOrgOwner(req, res)){
         next(); // Grant
         return;
@@ -73,7 +80,7 @@ const allowDatasetRead = [userAuth, getDDBPath, async function(req, res, next){
 
     try{
         const info = await ddb.info(req.ddbPath);
-        if (info[0].meta.public){
+        if (info[0].properties.public){
             next();
             return;
         }
@@ -84,23 +91,10 @@ const allowDatasetRead = [userAuth, getDDBPath, async function(req, res, next){
     res.status(401).json({error: "Unauthorized"});
 }];
 
-const pathTraversalCheck = (ddbPath, inputPath) => {
-    if (path.resolve(ddbPath, inputPath).indexOf(ddbPath) !== 0){
-        throw new Error(`Invalid path: ${inputPath}`);
-    }
-}
-
-const safePathJoin = (knownPath, inputPath) => {
-    pathTraversalCheck(knownPath, inputPath);
-    return path.join(knownPath, inputPath);
-}
-
 module.exports = {
     allowOrgOwnerOrPublicOrgOnly,
     allowDatasetOwnerOrPasswordOnly,
     allowDatasetWrite,
     allowDatasetRead,
-    allowOrgWrite,
-    pathTraversalCheck,
-    safePathJoin
+    allowOrgWrite
 };

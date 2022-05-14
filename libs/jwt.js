@@ -50,7 +50,7 @@ module.exports = {
     
     readJwt,
     jwtAuth: [readJwt, function(req, res, next){
-    	if (!req.user.username) res.status(401).json({error: "Unauthorized"});
+    	if (!req.allowAnonymous && !req.user.username) res.status(401).json({error: "Unauthorized"});
  
     	else next();
     }],

@@ -4,11 +4,11 @@ const PUBLIC_ORG_NAME = "public";
 
 module.exports = {
     PUBLIC_ORG_NAME,
-    parseOrCreateTag: function(tag){
+    parseOrCreateTag: function(tag, id = null){
         if (!tag){
             return {
                 organization: PUBLIC_ORG_NAME,
-                dataset: uuidv4().replace(/-/g, '')
+                dataset: id !== null ? id : uuidv4().replace(/-/g, '')
             };
         }else{
             const parts = tag.split('/');
@@ -28,7 +28,7 @@ module.exports = {
             }
 
             if (t.dataset.trim() === ""){
-                t.dataset = uuidv4().replace(/-/g, ''); // Generate one
+                t.dataset = id !== null ? id : uuidv4().replace(/-/g, '')
             }
 
             return t;

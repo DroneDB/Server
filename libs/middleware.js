@@ -2,9 +2,8 @@ const path = require('path');
 const { fsExists } = require('./fs');
 const Mode = require('./Mode');
 const Directories = require('./Directories');
-const { formDataParser } = require('./parsers');
-
 const { v4: uuidv4 } = require('uuid');
+const { encode } = require('./base32');
 
 function allowNewDDBPath(req, res, next){
     req.allowNewDDBPath = true;
@@ -64,7 +63,7 @@ const asyncHandle = func => (req, res, next) => {
 };
 
 const assignUUID = (req, res, next) => {
-    req.id = uuidv4().replace(/-/g, '');
+    req.id = encode(uuidv4().replace(/-/g, '')).substring(0, 12);
     next();
 }
 
@@ -73,18 +72,8 @@ const noCache = (req, res, next) => {
     next();
 };
 
-const getDsFromFormData = function(field){
-    return [formDataParser, (req, res, next) => {
-        if (req.params.ds === undefined && req.body[field] !== undefined){
-            req.params.ds = req.body[field];
-        }
-        next();
-    }];
-}
-
 module.exports = {
     allowNewDDBPath,
-    getDsFromFormData,
     getDDBPath,
     assignUUID,
     asyncHandle,

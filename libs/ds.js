@@ -1,4 +1,5 @@
 const security = require('./security');
+const pathsec = require('./pathsec');
 const Mode = require('./Mode');
 const tag = require('./tag');
 const express = require('express');
@@ -6,9 +7,9 @@ const router = express.Router();
 const ddb = require('../vendor/ddb');
 const Directories = require('./Directories');
 const path = require('path');
-const { fsMove, fsMkdir, fsRm, fsExists, fsStat, fsReaddir, fsCreationDate } = require('./fs');
+const { fsMove, fsMkdir, fsRm, fsExists, fsReaddir, fsCreationDate } = require('./fs');
 const { formDataParser, uploadParser } = require('./parsers');
-const { asyncHandle, allowNewDDBPath, getDsFromFormData } = require('./middleware');
+const { asyncHandle, allowNewDDBPath } = require('./middleware');
 const { handleDownload, handleDownloadFile } = require('./download');
 const { basicAuth } = require('./basicauth');
 const { formOrQueryParam } = require('./requtils');
@@ -29,6 +30,15 @@ const getTileSourceFilePath = (entry) => {
     else return entry.path;
 };
 
+const getDsFromFormData = function(field){
+    return [formDataParser, (req, res, next) => {
+        if (req.params.ds === undefined && req.body[field] !== undefined){
+            req.params.ds = req.body[field];
+        }
+        next();
+    }];
+}
+
 router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(async (req, res) => {
     if (Mode.singleDB){
         // Single database
@@ -46,7 +56,7 @@ router.get('/orgs/:org/ds', security.allowOrgOwnerOrPublicOrgOnly, asyncHandle(a
     const { org } = req.params;
     
     // // Path traversal check
-    security.pathTraversalCheck(Directories.storagePath, org);
+    pathsec.pathTraversalCheck(Directories.storagePath, org);
     const orgDir = path.join(Directories.storagePath, org);
     if (await fsExists(orgDir)){
         const files = await fsReaddir(orgDir);
@@ -85,7 +95,7 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
     isPublic = Boolean(isPublic);
 
     const orgPath = path.join(Directories.storagePath, org);
-    const dsPath = security.safePathJoin(orgPath, slug);
+    const dsPath = pathsec.safePathJoin(orgPath, slug);
 
     if (await fsExists(dsPath)) throw new Error(`${slug} already exists`);
 
@@ -103,6 +113,14 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
         properties: info[0].properties,
         creationDate: (await fsCreationDate(dsPath)).toISOString()
     });
+}));
+
+router.delete('/orgs/:org/ds/:ds', security.allowDatasetWrite, asyncHandle(async (req, res) => {
+    if (Mode.singleDB) throw new Error("Cannot delete datasets in singleDB mode");
+    
+    await fsRm(req.ddbPath, { recursive: true });
+
+    res.status(204).send("");
 }));
 
 router.get('/orgs/:org/ds/:ds', security.allowDatasetRead, asyncHandle(async (req, res) => {
@@ -198,7 +216,6 @@ router.post('/orgs/:org/ds/:ds/rename', formDataParser, security.allowDatasetWri
     }
 
     const slug = ddb.Tag.filterComponentChars(req.body.slug);
-    console.log(slug);
     if (!ddb.Tag.validComponent(slug)){
         throw new Error(`Invalid name. must be valid ASCII and may contain lowercase 
             and uppercase letters, digits, underscores, periods and dashes.
