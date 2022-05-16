@@ -9,6 +9,8 @@ const allowAnonymous = function (req, res, next){
     next();
 };
 
+const allowLoggedIn = userAuth;
+
 const checkOrgOwner = function(req, res){
     const { org } = req.params;
 
@@ -92,9 +94,11 @@ const allowDatasetRead = [allowAnonymous, userAuth, getDDBPath, async function(r
 }];
 
 module.exports = {
+    allowAnonymous,
     allowOrgOwnerOrPublicOrgOnly,
     allowDatasetOwnerOrPasswordOnly,
     allowDatasetWrite,
     allowDatasetRead,
-    allowOrgWrite
+    allowOrgWrite,
+    allowLoggedIn
 };

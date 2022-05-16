@@ -11,6 +11,7 @@ const { formDataParser } = require('./parsers');
 const { jwtAuth, DEFAULT_EXPIRATION_HOURS } = jwt;
 const { asyncHandle } = require('./middleware');
 const ddb = require('../vendor/ddb');
+const { addOrg } = require('./org');
 
 const login = async function(username, password, token = null){
     const res = await authProviders.get().authenticate(username, password, token);
@@ -28,8 +29,8 @@ const refreshToken = function(signObj){
 const populateRoles = function(req, res, next){
     if (req.user !== undefined){
         req.user.roles = db.fetchMultiple(`SELECT r.role AS role 
-                    FROM users u, roles r 
-                    INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id 
+                    FROM users u, roles r
+                    INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id
                     WHERE u.username = ?`, req.user.username).map(r => r['role']);
     }
     next();
@@ -82,9 +83,10 @@ module.exports = {
     populateRoles,
 
     initDefaults: function(){
-        const r = db.prepare("SELECT * FROM users WHERE username = ?").get('admin');
-        if (!r){
+        const r = db.prepare("SELECT COUNT(id) AS count FROM users").get();
+        if (!r['count']){
             this.addUser('admin', 'password', ['admin']);
+            this.addRole('user');
         }
     },
 
@@ -96,14 +98,23 @@ module.exports = {
         const info = db.prepare(`INSERT INTO users (username, salt, password) VALUES (?, ?, ?)`).run(username, salt, pwd);
 
         roles.forEach(role => {
-            const r = db.prepare("SELECT id FROM roles WHERE role = ?").get(role);
-            if (!r){
-                logger.info(`Adding ${role} role`);
-                db.prepare("INSERT INTO roles (role) VALUES(?)").run(role);
-            }
-
+            this.addRole(role);
             const roleId = db.fetchOne("SELECT id FROM roles WHERE role = ?", role)['id'];
             db.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)").run(info.lastInsertRowid, roleId);
         });
+
+        addOrg({slug: ddb.Tag.filterComponentChars(username)}, username);
+    },
+
+    addRole: function(role){
+        const r = db.prepare("SELECT id FROM roles WHERE role = ?").get(role);
+        if (!r){
+            logger.info(`Adding ${role} role`);
+            db.prepare("INSERT INTO roles (role) VALUES(?)").run(role);
+        }
+    },
+
+    getUserId: function(username){
+        return db.prepare("SELECT id FROM users WHERE username = ?").get(username)?.['id'];
     }
 }

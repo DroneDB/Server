@@ -22,16 +22,38 @@ const migrations = [
         "role"	TEXT UNIQUE NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS "orgs" (
+        "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "slug"	TEXT UNIQUE NOT NULL,
+        "name" TEXT,
+        "description" TEXT,
+        "creationDate" TEXT NOT NULL,
+        "owner" INTEGER,
+        "isPublic" INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS "user_roles" (
         "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         "user_id"	INTEGER NOT NULL,
         "role_id"	INTEGER NOT NULL
     );
+    
 
     CREATE INDEX IF NOT EXISTS ix_user_roles_user_id
     ON user_roles (user_id);
     CREATE INDEX IF NOT EXISTS ix_user_roles_role_id
     ON user_roles (role_id);
+
+    CREATE TABLE IF NOT EXISTS "user_orgs" (
+        "id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "user_id"	INTEGER NOT NULL,
+        "org_id"	INTEGER NOT NULL
+    );
+    
+    CREATE INDEX IF NOT EXISTS ix_user_orgs_user_id
+    ON user_orgs (user_id);
+    CREATE INDEX IF NOT EXISTS ix_user_orgs_group_id
+    ON user_orgs (org_id);
     `
 ];
 
@@ -49,7 +71,7 @@ module.exports = {
 
         let i = 0;
         migrations.slice(currentMigration).forEach(m => {
-            logger.info(`Migrating (${currentMigration + (i++)})... `);
+            logger.info(`Migrating ${currentMigration + (i++)}... `);
             this.db.exec(m);
         });
         if (i > 0) this.setCurrentMigration(currentMigration + i);

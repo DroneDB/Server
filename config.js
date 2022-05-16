@@ -23,6 +23,7 @@ Options:
 	--ssl-key	Path to key for SSL. (default: none)
 	--cleanup-uploads-after <number> Number of minutes that elapse before deleting unfinished uploads. Set this value to the maximum time you expect a dataset to be uploaded. (default: 2880) 
 	--single	Serve only the directory specified by storage-path, even if it's empty. (default: run server when storage path is an empty directory)
+	--full	Serve in full server mode from storage-path even if it's not empty. (default: run server when storage path is an empty directory)
 	--powercycle	When set, the application exits immediately after powering up. Useful for testing launch and compilation issues.
 Log Levels: 
 error | debug | info | verbose | debug | silly 
@@ -73,6 +74,7 @@ config.sslCert = argv['ssl-cert'] || fromConfigFile("ssl-cert", "");
 config.sslKey = argv['ssl-key'] || fromConfigFile("ssl-key", "");
 config.ssl = config.sslCert && config.sslKey;
 config.single = argv.single || fromConfigFile("single", false);
+config.full = argv.full || fromConfigFile("full", false);
 config.powercycle = argv.powercycle || fromConfigFile("powercycle", false);
 
 module.exports = config;

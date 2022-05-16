@@ -1,33 +1,55 @@
-const { fsCreationDate, fsExists, fsReadFile, fsWriteFile, fsIsDirectory } = require('./fs');
-const path = require('path');
-const ddb = require('../vendor/ddb');
+const db = require('./db');
+const utils = require('./utils');
+const logger = require('./logger');
 
-async function getOrgFromDDBInfo(ddbInfo){
-    const info = ddbInfo[0];
-    if (info.type !== ddb.entry.type.DRONEDB) throw new Error(`${JSON.stringify(ddbInfo)} is not a DroneDB entry`);
+const addOrg = function(org, owner){
+    const slug = org.slug;
+    if (slug === undefined) throw new Error("Invalid slug");
 
-    return {
-        name: info.properties?.meta?.name?.data ?? path.basename(info.path),
-        description:  info.properties?.meta?.description?.data ?? "",
-        creationDate: (await fsCreationDate(info.path.replace("file://", ""))).toISOString(),
-        isPublic: !!info.properties.public,
-        owner: info.properties?.meta?.owner?.data ?? null
-    };
+    const r = db.prepare("SELECT id FROM orgs WHERE slug = ?").get(slug);
+    if (!r){
+        const ownerId = db.prepare("SELECT id FROM users WHERE username = ?").get(owner)?.['id'];
+
+        const name = org.name ?? owner;
+        const description = org.description;
+        const isPublic = org.isPublic ? 1 : 0;
+
+        logger.info(`Adding ${slug} org`);
+        db.prepare(`INSERT INTO orgs (slug, name, description, creationDate, owner, isPublic)
+        VALUES (?, ?, ?, datetime('now'), ?,  ?)`).run(slug, name, description, ownerId, isPublic);
+
+        const orgId = db.fetchOne("SELECT id FROM orgs WHERE slug = ?", slug)['id'];
+        db.prepare("INSERT INTO user_orgs (user_id, org_id) VALUES (?, ?)").run(ownerId, orgId);
+
+        return orgId;
+    }
 }
 
-async function orgInfoFromPath(p){
-    if (!await fsIsDirectory(p)) throw new Error(`${p} is not a directory`);
+const getOrgById = function(id){
+    return db.fetchOne("SELECT * FROM orgs WHERE id = ?", id);
+};
 
-    let info = await ddb.info(p);
-    if (info[0].type !== ddb.entry.type.DRONEDB){
-        // Make it so
-        await ddb.init(p);
-        info = await ddb.info(p);
-    }
+const getOrg = function(slug){
+    return db.fetchOne("SELECT * FROM orgs WHERE slug = ?", slug);
+}
 
-    return await getOrgFromDDBInfo(info);
+const getOrgOwner = function(slug){
+    return db.fetchOne(`SELECT u.username FROM users u
+        INNER JOIN orgs o ON o.owner = u.id 
+        WHERE o.slug = ?`, slug)['username'];
+}
+
+const orgToJson = function(orgDb){
+    if (!orgDb) return orgDb;
+    const o = utils.clone(orgDb);
+    o.creationDate = new Date(o.creationDate).toISOString();
+    return o;
 }
 
 module.exports = {
-    orgInfoFromPath
+    addOrg,
+    getOrg,
+    getOrgById,
+    orgToJson,
+    getOrgOwner
 };

@@ -40,7 +40,7 @@ class Mode{
             const emptyDir = entries.length === 0;
             const hasServerDb = entries.find(e => e === 'server.db');
 
-            if ((emptyDir || hasServerDb) && !config.single){
+            if ((emptyDir || hasServerDb || config.full) && !config.single){
                 logger.info(`Running server using storage path: ${storagePath}`);
             }else{
                 // Initialize database

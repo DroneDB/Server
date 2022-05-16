@@ -18,7 +18,7 @@ async function getDDBPath(req, res, next){
             req.ddbPath = Directories.singleDBPath;
             next();
         }else{
-            res.status(400).json({error: "No dataset found"});
+            res.status(404).json({error: "No dataset found"});
         }
         return;
     }
@@ -33,7 +33,7 @@ async function getDDBPath(req, res, next){
 
     // Dir check
     if (!req.allowNewDDBPath && !(await fsExists(req.ddbPath))){
-        res.status(400).json({error: "Invalid path"});
+        res.status(404).json({error: "No dataset found"});
         return;
     }
 
