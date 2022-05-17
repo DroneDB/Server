@@ -53,7 +53,7 @@ class Hub{
             res.setHeader('Cache-Control', 'public, max-age=86400');
             res.setHeader('Content-Length', index.length);
             res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-            res.setHeader('indexETag', indexEtag);
+            res.setHeader('ETag', indexEtag);
             res.send(index);
         };
         router.get('/r', handler);

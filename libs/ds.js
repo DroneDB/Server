@@ -99,7 +99,7 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
 
     if (await fsExists(dsPath)) throw new Error(`${slug} already exists`);
 
-    await fsMkdir(dsPath);
+    await fsMkdir(dsPath, { recursive: true });
     await ddb.init(dsPath);
 
     if (name !== undefined) await ddb.meta.set(dsPath, "", "name", name);

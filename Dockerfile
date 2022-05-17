@@ -69,6 +69,6 @@ RUN apt update && apt install -y --fix-missing --no-install-recommends gnupg2 ca
 
 WORKDIR /server
 EXPOSE 5000/tcp
-VOLUME [ "/storage" ]
+VOLUME /storage
 
 ENTRYPOINT ["node", "index.js", "/storage"]

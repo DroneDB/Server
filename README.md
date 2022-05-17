@@ -4,41 +4,54 @@
 
 <!-- PROJECT LOGO -->
 <br />
-<div align="left">
+<div align="center">
   <a href="https://github.com/DroneDB/Server">
-    <img src="https://user-images.githubusercontent.com/1951843/168663747-3118afa5-81ee-40a8-a03d-8589bea6a64b.png" alt="DroneDB Server">
+    <img src="https://user-images.githubusercontent.com/1951843/168909537-8523662e-766d-41e6-8b9b-60f37e5f168d.png" alt="DroneDB Server">
   </a>
 
-  <p align="left">
-    No fuss aerial data management and sharing server.
+  <p align="center">
+    A self-hosted aerial data management and sharing server.
   </p>
 </div>
 
-## What is this?
+## What is it?
+
+![image](https://user-images.githubusercontent.com/1951843/168910096-ed819236-4945-4c0a-bf34-5d3223961697.png)
 
 A server to manage and share aerial data assets (aerial images, orthophotos, elevation models, point clouds, textured models, panoramas, etc.).
 
-You can run DroneDB Server to organize aerial data within your organization, share it with others or even build entirely custom applications with it. 
+You can run DroneDB Server to organize aerial data, share it with others or even build custom applications on top of its API.
 
-You provide the files, DroneDB Server handles the rest. It exposes on-demand dynamic tiling, creating thumbnails, parsing EXIF data, streaming meshes, handling metadata, geoprojecting images and many other functions.
+You provide the files, DroneDB Server handles the rest: on-demand dynamic tiling, creating thumbnails, parsing geolocation data, streaming meshes, handling metadata, geoprojecting images and many other functions.
 
-DroneDB Server also doesn't mess with your data! Files and folders are organized in a normal filesystem structure; there's no databases, unique identifiers or other complex layers. You can always access your data from the filesystem. 
+DroneDB Server organizes your data in a straightforward filesystem structure. There's no databases, unique identifiers or other complex layers. You can always access your data from the filesystem.
 
 Backing up your DroneDB Server is as simple as copying the entire storage folder. You can even toss away DroneDB server and you will still be able to access your data in an organized manner.
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-If you have [docker](https://www.docker.com/) installed you can run:
+ * First install [docker](https://www.docker.com/). It's the only requirement.
+
+### Linux/macOS
+
+Download [ddb-server.sh](https://raw.githubusercontent.com/DroneDB/Server/master/ddb-server.sh) and run from a command prompt:
 
 ```
-docker run dronedb/server -p 5000:5000
+bash ddb-server.sh start
 ```
+
+### Windows
+
+Coming soon!
+
+ * Open a browser to `http://localhost:5000` and login with the default credentials: `admin:password`.
 
 ## Roadmap
 
 - [ ] User Management
 - [ ] Native deployment on macOS
+- [ ] Native deployment on Windows
 
 See the [open issues](https://github.com/DroneDB/Server/issues) for a full list of proposed features (and known issues).
 
