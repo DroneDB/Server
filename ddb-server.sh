@@ -135,7 +135,9 @@ start(){
 
     TGT_STORAGE=/storage
     STORAGE_OPT=""
-    
+    # MYUSER=$(id -u)
+    # MYGROUP=$(id -g)
+    # --user $MYUSER:$MYGROUP
     if [[ "$DDBS_MODE" == "single" ]]; then
         TGT_STORAGE="$TGT_STORAGE/$(basename $DDBS_STORAGE)"
         STORAGE_OPT="--storage-path \"$TGT_STORAGE\""
