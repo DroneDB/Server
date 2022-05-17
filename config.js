@@ -5,30 +5,34 @@ let os = require('os');
 let argv = require('minimist')(process.argv.slice(2));
 let utils = require('./libs/utils');
 
-if (argv.help){
-	console.log(`
-Usage: node index.js [storage-path] [options]
+const printHelp = () => {
+    console.log(`
+    Usage: node index.js [storage-path] [options]
+    
+    Options:
+    --storage-path	Path to the storage folder or individual DroneDB database (default: .)
+    --config <path>	Path to the configuration file (default: none)	
+    -p, --port <number> 	Port to bind the server to (default: 3000)
+    --hub-name <name> 	Name of the server (default: machine's hostname)
+    --hub-icon <icon>	Icon to use in the UI's header. Can be one of https://semantic-ui.com/elements/icon.html. (default: "dronedb")
+    --hub-logo <path>	Path to image (SVG, PNG or JPEG) to use as a logo (default: none)
+    --log-level <logLevel>	Set log level verbosity (default: info)
+    -a, --auth <provider>	Authentication provider to use. [local|remote] (default: local)
+    --remote-auth <url>	Remote authentication URL. (default: https://dronedb.app)
+    --ssl-cert	Path to cert for SSL. (default: none)
+    --ssl-key	Path to key for SSL. (default: none)
+    --cleanup-uploads-after <number> Number of minutes that elapse before deleting unfinished uploads. Set this value to the maximum time you expect a dataset to be uploaded. (default: 2880) 
+    --single	Serve only the directory specified by storage-path, even if it's empty. (default: run server when storage path is an empty directory)
+    --full	Serve in full server mode from storage-path even if it's not empty. (default: run server when storage path is an empty directory)
+    --powercycle	When set, the application exits immediately after powering up. Useful for testing launch and compilation issues.
+    Log Levels: 
+    error | debug | info | verbose | debug | silly 
+    `);
+    process.exit(0);
+};
 
-Options:
-	--storage-path	Path to the storage folder or individual DroneDB database (default: .)
-	--config <path>	Path to the configuration file (default: none)	
-	-p, --port <number> 	Port to bind the server to (default: 3000)
-	--hub-name <name> 	Name of the server (default: machine's hostname)
-	--hub-icon <icon>	Icon to use in the UI's header. Can be one of https://semantic-ui.com/elements/icon.html. (default: "dronedb")
-	--hub-logo <path>	Path to image (SVG, PNG or JPEG) to use as a logo (default: none)
-	--log-level <logLevel>	Set log level verbosity (default: info)
-	-a, --auth <provider>	Authentication provider to use. [local|remote] (default: local)
-	--remote-auth <url>	Remote authentication URL. (default: https://dronedb.app)
-	--ssl-cert	Path to cert for SSL. (default: none)
-	--ssl-key	Path to key for SSL. (default: none)
-	--cleanup-uploads-after <number> Number of minutes that elapse before deleting unfinished uploads. Set this value to the maximum time you expect a dataset to be uploaded. (default: 2880) 
-	--single	Serve only the directory specified by storage-path, even if it's empty. (default: run server when storage path is an empty directory)
-	--full	Serve in full server mode from storage-path even if it's not empty. (default: run server when storage path is an empty directory)
-	--powercycle	When set, the application exits immediately after powering up. Useful for testing launch and compilation issues.
-Log Levels: 
-error | debug | info | verbose | debug | silly 
-`);
-	process.exit(0);
+if (argv.help){
+    printHelp();
 }
 
 let config = {};
@@ -60,7 +64,9 @@ config.logger.maxFileSize = fromConfigFile("logger.maxFileSize", 1024 * 1024 * 1
 config.logger.maxFiles = fromConfigFile("logger.maxFiles", 10); // Max number of log files kept
 config.logger.logDirectory = fromConfigFile("logger.logDirectory", ''); // Set this to a full path to a directory - if not set logs will be written to the application directory.
 
-config.storagePath = (argv._.length ? argv._[0] : "") || argv.storagePath || argv.s || fromConfigFile("storagePath", process.env.STORAGE_PATH || ".");
+config.storagePath = (argv._.length ? argv._[0] : "") || argv.storagePath || argv.s || fromConfigFile("storagePath", process.env.STORAGE_PATH || "");
+if (!config.storagePath) printHelp();
+
 config.port = parseInt(argv.port || argv.p || fromConfigFile("port", process.env.PORT || 5000));
 config.hub = {
     name: argv['hub-name'] || fromConfigFile("hub-name", process.env.HUB_NAME || os.hostname()),
