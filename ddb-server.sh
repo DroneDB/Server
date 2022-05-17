@@ -68,6 +68,13 @@ export DDBS_PORT="${DDBS_PORT:=${DEFAULT_PORT}}"
 export DDBS_HUB_NAME="${DDBS_HUB_NAME:=${DEFAULT_HUB_NAME}}"
 export DDBS_STORAGE="${DDBS_STORAGE:=${DEFAULT_STORAGE}}"
 
+export DDBS_MODE="full"
+if [[ -d "$DDBS_STORAGE/.ddb" ]]; then
+    export DDBS_MODE="single"
+fi
+if [[ -n "$(ls -A $DDBS_STORAGE 2>/dev/null)" && ! -f "$DDBS_STORAGE/server.db" ]]; then
+    export DDBS_MODE="single"
+fi
 
 usage(){
   echo "Usage: $0 <command>"
@@ -126,7 +133,15 @@ run(){
 start(){
     echo "Starting DroneDB Server..."
 
-	command="docker run --rm --name ddb-server -v \"$DDBS_STORAGE:/storage\" -p $DDBS_PORT:$DDBS_PORT dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\""
+    TGT_STORAGE=/storage
+    STORAGE_OPT=""
+    
+    if [[ "$DDBS_MODE" == "single" ]]; then
+        TGT_STORAGE="$TGT_STORAGE/$(basename $DDBS_STORAGE)"
+        STORAGE_OPT="--storage-path \"$TGT_STORAGE\""
+    fi
+
+    command="docker run --rm --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -p $DDBS_PORT:$DDBS_PORT dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
 
 	run "$command"
 }

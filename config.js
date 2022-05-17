@@ -64,7 +64,7 @@ config.logger.maxFileSize = fromConfigFile("logger.maxFileSize", 1024 * 1024 * 1
 config.logger.maxFiles = fromConfigFile("logger.maxFiles", 10); // Max number of log files kept
 config.logger.logDirectory = fromConfigFile("logger.logDirectory", ''); // Set this to a full path to a directory - if not set logs will be written to the application directory.
 
-config.storagePath = (argv._.length ? argv._[0] : "") || argv.storagePath || argv.s || fromConfigFile("storagePath", process.env.STORAGE_PATH || "");
+config.storagePath = (argv._.length ? argv._[0] : "") || argv["storage-path"] || argv["storage"] || argv.s || fromConfigFile("storagePath", process.env.STORAGE_PATH || "");
 if (!config.storagePath) printHelp();
 
 config.port = parseInt(argv.port || argv.p || fromConfigFile("port", process.env.PORT || 5000));

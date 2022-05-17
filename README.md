@@ -47,6 +47,30 @@ Coming soon!
 
  * Open a browser to `http://localhost:5000` and login with the default credentials: `admin:password`.
 
+
+## Set Storage Path
+
+By default DroneDB Server will store all data in a `storage/` folder. You can change that by passing a `--storage` parameter:
+
+```
+bash ddb-server.sh start --storage /path/to/storage
+```
+
+See `bash ddb-server.sh --help` for other options.
+
+## Run in SingleDB mode
+
+DroneDB Server can operate in two modes: 
+
+ * **Full**: organizations and datasets will be stored in storage path. This is the default.
+ * **Single**: if storage path is a directory containing existing files, the directory will be indexed and served by the server. A single `projects` organization will exist and a single dataset will be available.
+
+For example, if you have a folder with results from [ODM](https://github.com/OpenDroneMap/ODM), you can run:
+
+```
+bash ddb-server.sh start --storage /data/drone/brighton
+```
+
 ## Roadmap
 
 - [ ] User Management
