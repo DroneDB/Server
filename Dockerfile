@@ -34,7 +34,9 @@ RUN cd /server && npm install --unsafe-perm
 # ---> Run stage
 FROM ubuntu:focal as runner
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
-ENV HUB_NAME="DroneDB"
+ENV HUB_NAME="DroneDB Server"
+ENV DDB_SERVER_HOME="/.ddb-server"
+ENV DDB_HOME="/.ddb-server/.ddb"
 
 COPY --from=builder /server/*.js /server/
 COPY --from=builder /server/libs /server/libs

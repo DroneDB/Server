@@ -47,10 +47,12 @@ case $key in
     export DDBS_STORAGE
     shift # past argument
     shift # past value
-    ;;
-    --ssl)
-    export DDBS_SSL=YES
+    ;;	
+    --system-storage)
+    DDBS_SYSTEM_STORAGE=$(realpath "$2")
+    export DDBS_SYSTEM_STORAGE
     shift # past argument
+    shift # past value
     ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
@@ -63,10 +65,15 @@ set -- "${POSITIONAL[@]}" # restore positional parameter
 DEFAULT_PORT="5000"
 DEFAULT_HUB_NAME="$(hostname)"
 DEFAULT_STORAGE="$(pwd)/storage"
+DEFAULT_SYSTEM_STORAGE=$(eval echo ~$USER)/.ddb-server
+if [[ ! -d "$DEFAULT_SYSTEM_STORAGE" ]]; then
+    DEFAULT_SYSTEM_STORAGE="$(pwd)/.ddb-server"
+fi
 
 export DDBS_PORT="${DDBS_PORT:=${DEFAULT_PORT}}"
 export DDBS_HUB_NAME="${DDBS_HUB_NAME:=${DEFAULT_HUB_NAME}}"
 export DDBS_STORAGE="${DDBS_STORAGE:=${DEFAULT_STORAGE}}"
+export DDBS_SYSTEM_STORAGE="${DDBS_SYSTEM_STORAGE:=${DEFAULT_SYSTEM_STORAGE}}"
 
 export DDBS_MODE="full"
 if [[ -d "$DDBS_STORAGE/.ddb" ]]; then
@@ -77,7 +84,7 @@ if [[ -n "$(ls -A $DDBS_STORAGE 2>/dev/null)" && ! -f "$DDBS_STORAGE/server.db" 
 fi
 
 usage(){
-  echo "Usage: $0 <command>"
+  echo "Usage: $0 <command|storage-path>"
   echo
   echo "This program helps to manage the setup/teardown of the docker container for running DroneDB Server. We recommend that you read the full documentation of docker at https://docs.docker.com if you want to customize your setup."
   echo
@@ -92,6 +99,7 @@ usage(){
   echo "	--port	<port>	Set the port that DroneDB Server should bind to (default: $DEFAULT_PORT)"
   echo "	--hub-name	Set the name of the server (default: $DEFAULT_HUB_NAME)"
   echo "	--storage	<path>	Path where to store all data (default: $DEFAULT_STORAGE)"
+  echo "	--system-storage	<path>	Path where to store auth stores, cache files and other system files (default: $DEFAULT_SYSTEM_STORAGE)"
   exit
 }
 
@@ -135,15 +143,15 @@ start(){
 
     TGT_STORAGE=/storage
     STORAGE_OPT=""
-    # MYUSER=$(id -u)
-    # MYGROUP=$(id -g)
-    # --user $MYUSER:$MYGROUP
+    MYUSER=$(id -u)
+    MYGROUP=$(id -g)
+    
     if [[ "$DDBS_MODE" == "single" ]]; then
         TGT_STORAGE="$TGT_STORAGE/$(basename $DDBS_STORAGE)"
         STORAGE_OPT="--storage-path \"$TGT_STORAGE\""
     fi
 
-    command="docker run --rm --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -p $DDBS_PORT:$DDBS_PORT dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
+    command="docker run --rm --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -v \"$DDBS_SYSTEM_STORAGE\":/.ddb-server -p $DDBS_PORT:$DDBS_PORT --user $MYUSER:$MYGROUP dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
 
 	run "$command"
 }
@@ -153,27 +161,31 @@ stop(){
 
     command+="docker stop ddb-server"
 
-	run "$command"
+    run "$command"
 }
 
 if [[ $1 = "start" ]]; then
-	environment_check
-	start
+    environment_check
+    start
 elif [[ $1 = "stop" ]]; then
-	environment_check
-	stop
+    environment_check
+    stop
 elif [[ $1 = "restart" ]]; then
-	environment_check
-	stop
-	start
+    environment_check
+    stop
+    start
 elif [[ $1 = "update" ]]; then
-	echo "Updating DroneDB Server..."
+    echo "Updating DroneDB Server..."
 
-	command="docker pull dronedb/server"
-	run "$command"
-	echo -e "\033[1mDone!\033[0m You can now start DroneDB Server by running $0 restart"
+    command="docker pull dronedb/server"
+    run "$command"
+    echo -e "\033[1mDone!\033[0m You can now start DroneDB Server by running $0 restart"
 elif [[ $1 = "checkenv" ]]; then
-	environment_check
+    environment_check
+elif [[ -d "$1" ]]; then
+    export DDBS_STORAGE="$1"
+    environment_check
+    start
 else
-	usage
+    usage
 fi

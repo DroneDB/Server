@@ -18,7 +18,7 @@ class Directories{
     static get data(){
         if (!storagePath) throw new Error("Directories not intialized");
 
-        if (Mode.singleDB) return path.join(os.homedir(), ".ddb-server");
+        if (Mode.singleDB) return process.env.DDB_SERVER_HOME !== undefined ? process.env.DDB_SERVER_HOME : path.join(os.homedir(), ".ddb-server");
         else return this.storagePath;
     }
 
