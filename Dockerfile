@@ -37,6 +37,7 @@ ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 ENV HUB_NAME="DroneDB Server"
 ENV DDB_SERVER_HOME="/.ddb-server"
 ENV DDB_HOME="/.ddb-server"
+ENV STORAGE_PATH="/storage"
 
 COPY --from=builder /server/*.js /server/
 COPY --from=builder /server/libs /server/libs
@@ -74,4 +75,4 @@ WORKDIR /server
 EXPOSE 5000/tcp
 VOLUME /storage
 
-ENTRYPOINT ["node", "index.js", "/storage"]
+ENTRYPOINT ["node", "index.js"]

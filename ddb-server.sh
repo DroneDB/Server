@@ -32,7 +32,7 @@ do
 key="$1"
 
 case $key in
-    --port)
+    --port|-p)
     export DDBS_PORT="$2"
     shift # past argument
     shift # past value
@@ -42,7 +42,7 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-	--storage)
+    --storage|-s)
     DDBS_STORAGE=$(realpath "$2")
     export DDBS_STORAGE
     shift # past argument
@@ -53,6 +53,10 @@ case $key in
     export DDBS_SYSTEM_STORAGE
     shift # past argument
     shift # past value
+    ;;    
+    --debug)
+    export DDBS_DEBUG=YES
+    shift # past argument
     ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
@@ -75,6 +79,10 @@ export DDBS_HUB_NAME="${DDBS_HUB_NAME:=${DEFAULT_HUB_NAME}}"
 export DDBS_STORAGE="${DDBS_STORAGE:=${DEFAULT_STORAGE}}"
 export DDBS_SYSTEM_STORAGE="${DDBS_SYSTEM_STORAGE:=${DEFAULT_SYSTEM_STORAGE}}"
 
+if [[ "$DDBS_STORAGE" == "$DEFAULT_STORAGE" && -d "$1" ]]; then
+    export DDBS_STORAGE="$1"
+fi
+
 export DDBS_MODE="full"
 if [[ -d "$DDBS_STORAGE/.ddb" ]]; then
     export DDBS_MODE="single"
@@ -96,10 +104,11 @@ usage(){
   echo "	checkenv		Do an environment check and install missing components"
   echo ""
   echo "Options:"
-  echo "	--port	<port>	Set the port that DroneDB Server should bind to (default: $DEFAULT_PORT)"
+  echo "	--port,-p	<port>	Set the port that DroneDB Server should bind to (default: $DEFAULT_PORT)"
   echo "	--hub-name	Set the name of the server (default: $DEFAULT_HUB_NAME)"
-  echo "	--storage	<path>	Path where to store all data (default: $DEFAULT_STORAGE)"
+  echo "	--storage,-s	<path>	Path where to store all data (default: $DEFAULT_STORAGE)"
   echo "	--system-storage	<path>	Path where to store auth stores, cache files and other system files (default: $DEFAULT_SYSTEM_STORAGE)"
+  echo "	--debug	Enable debug mode (default: no)"
   exit
 }
 
@@ -139,19 +148,24 @@ run(){
 }
 
 start(){
-    echo "Starting DroneDB Server..."
+    echo "Starting DroneDB Server ($DDBS_MODE mode)..."
 
     TGT_STORAGE=/storage
     STORAGE_OPT=""
     MYUSER=$(id -u)
     MYGROUP=$(id -g)
+    DEBUG_MODE=""
+
+    if [[ "$DDBS_DEBUG" == "YES" ]]; then
+        DEBUG_MODE="-e DDB_DEBUG=1"
+    fi
     
     if [[ "$DDBS_MODE" == "single" ]]; then
         TGT_STORAGE="$TGT_STORAGE/$(basename $DDBS_STORAGE)"
         STORAGE_OPT="--storage-path \"$TGT_STORAGE\""
     fi
 
-    command="docker run --rm --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -v \"$DDBS_SYSTEM_STORAGE\":/.ddb-server -p $DDBS_PORT:$DDBS_PORT --user $MYUSER:$MYGROUP dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
+    command="docker run --rm $DEBUG_MODE -e DDB_HOME=/.ddb-server --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -v \"$DDBS_SYSTEM_STORAGE\":/.ddb-server -p $DDBS_PORT:$DDBS_PORT --user $MYUSER:$MYGROUP dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
 
 	run "$command"
 }
@@ -187,5 +201,5 @@ elif [[ -d "$1" ]]; then
     environment_check
     start
 else
-    usage
+    start
 fi

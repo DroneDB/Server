@@ -87,6 +87,9 @@ module.exports = {
         if (!r['count']){
             this.addUser('admin', 'password', ['admin']);
             this.addRole('user');
+
+            logger.warn("Default login: admin");
+            logger.warn("Default password: password");
         }
     },
 
