@@ -50,10 +50,10 @@ Coming soon!
 
 ## Set Storage Path
 
-By default DroneDB Server will store all data in a `storage/` folder. You can change that by passing a `--storage` parameter:
+By default DroneDB Server will store all data in a `storage/` folder. You can change that by passing a path:
 
 ```
-./ddb-server.sh start --storage /path/to/storage
+./ddb-server.sh /path/to/storage
 ```
 
 See `./ddb-server.sh --help` for other options.
