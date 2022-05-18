@@ -63,7 +63,7 @@ See `./ddb-server.sh --help` for other options.
 DroneDB Server can operate in two modes: 
 
  * **Full**: organizations and datasets will be saved in the storage path. This is the default.
- * **Single**: if storage path is a directory containing existing files, the directory will be indexed and published by the server. A single `projects` organization will exist and a single dataset will be available. This can be useful to quickly share folders with others in offline environments.
+ * **Single**: if storage path is a directory containing existing files, the directory will be indexed and published by the server. A single `projects` organization will exist and a single dataset will be available. This can be useful to quickly share folders with others, or to manage your aerial data locally.
 
 For example, if you have a folder with results from [ODM](https://github.com/OpenDroneMap/ODM), you can run:
 
@@ -89,7 +89,7 @@ ddb info . --format json
 --> [{"depth":2,"mtime":1652890808,"path":"file:///data/drone/sunset-park/.","properties":{"entries":494,"public":false},"size":957197402,"type":7}]
 ```
 
-If we want to remove a directory from the index, for example, we can do so:
+If we want to remove a directory from the index, for example, we can run:
 
 ```
 ddb rm opensfm
@@ -149,7 +149,7 @@ What if you want to remove any trace of DroneDB from your data? Simply delete al
 To update the software run:
 
 ```
-bash ddb-server.sh update
+./ddb-server.sh update
 ```
 
 ## Roadmap
@@ -175,12 +175,12 @@ Don't forget to give the project a star!
 
 ## License
 
-Distributed under the AGPLv3 License. See `LICENSE.txt` for more information.
+Distributed under the AGPLv3 License. See `LICENSE` for more information.
 
 [contributors-shield]: https://img.shields.io/github/contributors/DroneDB/Server.svg?style=for-the-badge
 [contributors-url]: https://github.com/DroneDB/Server/graphs/contributors
 [stars-shield]: https://img.shields.io/github/stars/DroneDB/Server.svg?style=for-the-badge
 [stars-url]: https://github.com/DroneDB/Server/stargazers
 [license-shield]: https://img.shields.io/github/license/DroneDB/Server.svg?style=for-the-badge
-[license-url]: https://github.com/DroneDB/Server/blob/master/LICENSE.txt
+[license-url]: https://github.com/DroneDB/Server/blob/master/LICENSE
 [product-screenshot]: images/screenshot.png
