@@ -63,6 +63,7 @@ RUN apt update && apt install -y --fix-missing --no-install-recommends gnupg2 ca
     curl --silent --location https://deb.nodesource.com/setup_14.x | bash - && \
     apt install -y nodejs && \
     dpkg -i *.deb && rm /*.deb && mkdir /storage && \
+    mkdir /.ddb-server && \
     apt remove -y gnupg2 curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* && \
