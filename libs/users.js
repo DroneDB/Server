@@ -8,7 +8,8 @@ const Mode = require('./Mode');
 const Directories = require('./Directories');
 const authProviders = require('./authProviders');
 const { formDataParser } = require('./parsers');
-const { jwtAuth, DEFAULT_EXPIRATION_HOURS } = jwt;
+const { userAuth, DEFAULT_EXPIRATION_HOURS } = jwt;
+const { allowAdmin } = require('./security');
 const { asyncHandle } = require('./middleware');
 const ddb = require('../vendor/ddb');
 const { addOrg } = require('./org');
@@ -26,17 +27,6 @@ const refreshToken = function(signObj){
     return jwt.sign(newObj);
 }
 
-const populateRoles = function(req, res, next){
-    if (req.user !== undefined){
-        req.user.roles = db.fetchMultiple(`SELECT r.role AS role 
-                    FROM users u, roles r
-                    INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id
-                    WHERE u.username = ?`, req.user.username).map(r => r['role']);
-    }
-    next();
-}
-
-const userAuth = [jwtAuth, populateRoles];
 
 router.post('/users/authenticate', formDataParser, asyncHandle(async (req, res) => {
     const userInfo = await login(req.body.username, req.body.password, req.body.token);
@@ -70,6 +60,26 @@ router.get('/users/storage', asyncHandle(async (req, res) => {
     }
 }));
 
+router.get('/users', allowAdmin, asyncHandle(async (req, res) => {
+    res.json(db.prepare(`SELECT u.username, json_group_array(DISTINCT(r.role)) AS roles,  json_group_array(DISTINCT(o.slug)) AS orgs
+                        FROM users u
+                        LEFT JOIN (SELECT r.role, ur.user_id FROM user_roles ur
+                                    INNER JOIN roles r
+                                    ON r.id = ur.role_id) r
+                        ON r.user_id = u.id
+                        LEFT JOIN (SELECT o.slug, uo.user_id FROM user_orgs uo
+                                    INNER JOIN orgs o
+                                    ON o.id = uo.org_id) o
+                        ON o.user_id = u.id
+                        GROUP BY (u.id)`).all().map(u => {
+        return {
+            username: u.username,
+            roles: JSON.parse(u.roles).filter(r => r != null),
+            orgs: JSON.parse(u.orgs).filter(o => o != null)
+        }
+    }));
+}));
+
 
 function generateSalt() {
     return crypto.randomBytes(16).toString('hex');
@@ -79,9 +89,6 @@ module.exports = {
     api: router,
 
     login,
-    userAuth,
-    populateRoles,
-
     initDefaults: function(){
         const r = db.prepare("SELECT COUNT(id) AS count FROM users").get();
         if (!r['count']){

@@ -1,4 +1,4 @@
-const { userAuth } = require('./users');
+const { userAuth } = require('./jwt');
 const { PUBLIC_ORG_NAME } = require('./tag');
 const logger = require('./logger');
 const { getDDBPath } = require('./middleware');
@@ -10,6 +10,12 @@ const allowAnonymous = function (req, res, next){
 };
 
 const allowLoggedIn = userAuth;
+
+const allowAdmin = [userAuth, (req, res, next) => {
+    if (!req.user || !req.user.username) res.status(401).json({error: "Unauthorized"});
+    else if (!req.user.roles || req.user.roles.indexOf("admin") === -1) res.status(401).json({error: "Unauthorized"});
+    else next();
+}];
 
 const checkOrgOwner = function(req, res){
     const { org } = req.params;
@@ -100,5 +106,6 @@ module.exports = {
     allowDatasetWrite,
     allowDatasetRead,
     allowOrgWrite,
-    allowLoggedIn
+    allowLoggedIn,
+    allowAdmin
 };

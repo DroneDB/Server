@@ -30,15 +30,19 @@ class LocalAuthProvider extends AbstractAuthProvider{
         let r = db.prepare("SELECT salt FROM users WHERE username = ?").get(username);
         if (!r) throw new Error("Unauthorized");
 
-        r = db.prepare("SELECT username, metadata FROM users WHERE username = ? AND password = ?").get(username, crypto.createHmac('sha512', r.salt).update(password).digest("base64"));
+        r = db.prepare("SELECT id, username, metadata FROM users WHERE username = ? AND password = ?").get(username, crypto.createHmac('sha512', r.salt).update(password).digest("base64"));
         if (!r) throw new Error("Unauthorized");
 
         let res = { username };
-        if (r.metadata){
-            for (let k of Object.keys(r.metadata)){
-                res[k] = r.metadata[k];
-            }
+        const roles = db.prepare(`SELECT r.role FROM roles r 
+                INNER JOIN user_roles ur
+                ON ur.role_id = r.id
+                WHERE user_id = ?`).all(r.id).map(r => r.role);
+        
+        if (roles.indexOf('admin') !== -1){
+            res.admin = true;
         }
+
         return res;
     }
 };

@@ -45,6 +45,8 @@ class Hub{
                 `disableStorageInfo: true`
             ]);
         }
+
+        opts.push(`enableUsersManagement: true`);
         
         index = index.replace("// #HUB OPTIONS#", opts.join(","));
         indexEtag = crypto.createHash('md5').update(index, 'utf8').digest('hex');

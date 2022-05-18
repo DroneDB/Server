@@ -41,6 +41,16 @@ const readJwt = function(req, res, next){
 
 };
 
+const populateRoles = function(req, res, next){
+    if (req.user !== undefined){
+        req.user.roles = db.fetchMultiple(`SELECT r.role AS role 
+                    FROM users u, roles r
+                    INNER JOIN user_roles ur ON u.id = ur.user_id AND r.id = ur.role_id
+                    WHERE u.username = ?`, req.user.username).map(r => r['role']);
+    }
+    next();
+}
+
 module.exports = {
     DEFAULT_EXPIRATION_HOURS,
     initialize: function(){
@@ -49,11 +59,11 @@ module.exports = {
     },
     
     readJwt,
-    jwtAuth: [readJwt, function(req, res, next){
+    userAuth: [readJwt, function(req, res, next){
     	if (!req.allowAnonymous && !req.user.username) res.status(401).json({error: "Unauthorized"});
  
     	else next();
-    }],
+    }, populateRoles],
     sign: function(data){
         return jwt.sign(data, secret, { expiresIn: DEFAULT_EXPIRATION_HOURS + 'h' });
     }
