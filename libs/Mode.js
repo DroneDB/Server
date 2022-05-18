@@ -57,9 +57,14 @@ class Mode{
                 logger.info(`Added ${entries.length} entries`);
                 
                 logger.info("Building assets")
-                await ddb.build(storagePath, {}, p => {
-                    logger.info(`${p}`);
-                });
+                
+                try{
+                    await ddb.build(storagePath, {}, p => {
+                        logger.info(`${p}`);
+                    });
+                }catch(e){
+                    logger.error(`Build error: ${e}`);
+                }
 
                 await ddb.chattr(storagePath, { public: true });
             }

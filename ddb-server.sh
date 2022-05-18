@@ -165,7 +165,7 @@ start(){
         STORAGE_OPT="--storage-path \"$TGT_STORAGE\""
     fi
 
-    command="docker run --rm $DEBUG_MODE -e DDB_HOME=/.ddb-server --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -v \"$DDBS_SYSTEM_STORAGE\":/.ddb-server -p $DDBS_PORT:$DDBS_PORT --user $MYUSER:$MYGROUP dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
+    command="docker run --rm $DEBUG_MODE --name ddb-server -v \"$DDBS_STORAGE\":\"$TGT_STORAGE\" -v \"$DDBS_SYSTEM_STORAGE\":/.ddb-server -p $DDBS_PORT:$DDBS_PORT --user $MYUSER:$MYGROUP dronedb/server -p $DDBS_PORT --hub-name \"$DDBS_HUB_NAME\" $STORAGE_OPT"
 
 	run "$command"
 }
@@ -193,7 +193,7 @@ elif [[ $1 = "update" ]]; then
 
     command="docker pull dronedb/server"
     run "$command"
-    echo -e "\033[1mDone!\033[0m You can now start DroneDB Server by running $0 restart"
+    echo -e "\033[1mDone!\033[0m You can now start DroneDB Server."
 elif [[ $1 = "checkenv" ]]; then
     environment_check
 elif [[ -d "$1" ]]; then
