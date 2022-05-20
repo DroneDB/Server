@@ -42,7 +42,8 @@ chmod +x ddb-server.sh
 ./ddb-server.sh
 ```
 
- * Open a browser to `http://localhost:5000` and login with the default credentials: `admin:password`.
+ * Open a browser to http://localhost:5000 and login with the default credentials: `admin:password`.
+ * You can change the default password by visiting http://localhost:5000/account
 
 ### Windows
 
@@ -154,9 +155,10 @@ To update the software run:
 
 ## Roadmap
 
-- [ ] User Management
+- [X] User Management
 - [ ] Native deployment on macOS
 - [ ] Native deployment on Windows
+- [ ] What would you like to see? [open an issue!](https://github.com/DroneDB/Server/issues)
 
 See the [open issues](https://github.com/DroneDB/Server/issues) for a full list of proposed features (and known issues).
 

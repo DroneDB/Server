@@ -66,10 +66,15 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameter
 
+echo $POSITIONAL
+
+exit 1
+
 DEFAULT_PORT="5000"
 DEFAULT_HUB_NAME="$(hostname)"
 DEFAULT_STORAGE="$(pwd)/storage"
 DEFAULT_SYSTEM_STORAGE=$(eval echo ~$USER)/.ddb-server
+
 if [[ ! -d "$DEFAULT_SYSTEM_STORAGE" ]]; then
     DEFAULT_SYSTEM_STORAGE="$(pwd)/.ddb-server"
 fi

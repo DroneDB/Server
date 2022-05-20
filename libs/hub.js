@@ -47,6 +47,7 @@ class Hub{
         }
 
         opts.push(`enableUsersManagement: true`);
+        opts.push(`enableAccountManagement: true`);
         
         index = index.replace("// #HUB OPTIONS#", opts.join(","));
         indexEtag = crypto.createHash('md5').update(index, 'utf8').digest('hex');
@@ -61,6 +62,9 @@ class Hub{
         router.get('/r', handler);
         router.get('/r/*', handler);
         router.get('/login', handler);
+        router.get('/admin/users', handler);
+        router.get('/account', handler);
+        
 
         router.get('/', noCache, (req, res) => {
             if (Mode.singleDB){
