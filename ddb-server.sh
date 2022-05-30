@@ -66,10 +66,6 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameter
 
-echo $POSITIONAL
-
-exit 1
-
 DEFAULT_PORT="5000"
 DEFAULT_HUB_NAME="$(hostname)"
 DEFAULT_STORAGE="$(pwd)/storage"
