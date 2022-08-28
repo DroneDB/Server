@@ -37,6 +37,7 @@ ENV DDB_SERVER_HOME="/.ddb-server"
 ENV DDB_HOME="/.ddb-server"
 ENV STORAGE_PATH="/storage"
 
+COPY --from=builder /tmp/install_nexus.sh /tmp/install_nexus.sh
 COPY --from=builder /server/*.js /server/
 COPY --from=builder /server/libs /server/libs
 COPY --from=builder /server/*.json /server/
@@ -62,6 +63,7 @@ RUN apt update && apt install -y --fix-missing --no-install-recommends gnupg2 ca
     apt remove -y gnupg2 curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* && \
+    rm /tmp/install_nexus.sh && \
     cd /server && node index.js /storage --powercycle && \
     rm -fr /storage/*
 
