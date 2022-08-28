@@ -1,7 +1,6 @@
 const security = require('./security');
 const pathsec = require('./pathsec');
 const Mode = require('./Mode');
-const tag = require('./tag');
 const express = require('express');
 const router = express.Router();
 const ddb = require('../vendor/ddb');
@@ -85,14 +84,15 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
     if (Mode.singleDB) throw new Error("Not allowed in singleDB mode");
 
     const { org } = req.params;
-    let { slug, name, isPublic } = req.body;
+    let { slug, name, visibility } = req.body;
 
     if (!ddb.Tag.validComponent(slug)) throw new Error("Invalid slug");
     if (name !== undefined) name = String(name);
-    if (isPublic !== undefined) isPublic = false;
+    if (visibility === undefined) visibility = ddb.Visibility.PRIVATE;
 
     slug = String(slug);
-    isPublic = Boolean(isPublic);
+    visibility = parseInt(visibility);
+    if (isNaN(visibility)) visibility = ddb.Visibility.PRIVATE;
 
     const orgPath = path.join(Directories.storagePath, org);
     const dsPath = pathsec.safePathJoin(orgPath, slug);
@@ -103,8 +103,8 @@ router.post('/orgs/:org/ds', allowNewDDBPath, getDsFromFormData("slug"), securit
     await ddb.init(dsPath);
 
     if (name !== undefined) await ddb.meta.set(dsPath, "", "name", name);
-    await ddb.chattr(dsPath, { public: isPublic });
-
+    if (visibility !== undefined) await ddb.meta.set(dsPath, "", "visibility", visibility);
+    
     const info = await ddb.info(dsPath);
 
     res.json({
@@ -132,12 +132,17 @@ router.get('/orgs/:org/ds/:ds', security.allowDatasetRead, asyncHandle(async (re
 }));
 
 router.put('/orgs/:org/ds/:ds', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
-    const { name, isPublic } = req.body;
+    let { name, visibility } = req.body;
 
-    if (isPublic !== undefined) await ddb.chattr(req.ddbPath, {public: Boolean(isPublic)});
+    if (visibility !== undefined) {
+        visibility = parseInt(visibility);
+        if (isNaN(visibility)) visibility = ddb.Visibility.PRIVATE;
+        await ddb.meta.set(req.ddbPath, "", "visibility", visibility);
+    }
+
     if (name !== undefined) await ddb.meta.set(req.ddbPath, "", "name", name);
 
-    res.json({name, isPublic});
+    res.json({name, visibility});
 }));
 
 router.post('/orgs/:org/ds/:ds/list', formDataParser, security.allowDatasetRead, asyncHandle(async (req, res) => {
@@ -258,12 +263,12 @@ router.get('/orgs/:org/ds/:ds/meta/list', security.allowDatasetRead, asyncHandle
 router.post('/orgs/:org/ds/:ds/meta/add', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.add(req.ddbPath, formOrQueryParam(req, "path"), 
                                              formOrQueryParam(req, "key"), 
-                                             formOrQueryParam(req, "data")));
+                                             JSON.parse(formOrQueryParam(req, "data"))));
 }));
 router.post('/orgs/:org/ds/:ds/meta/set', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.set(req.ddbPath, formOrQueryParam(req, "path"), 
                                              formOrQueryParam(req, "key"), 
-                                             formOrQueryParam(req, "data")));
+                                             JSON.parse(formOrQueryParam(req, "data"))));
 }));
 router.post('/orgs/:org/ds/:ds/meta/remove', formDataParser, security.allowDatasetWrite, asyncHandle(async (req, res) => {
     res.json(await ddb.meta.remove(req.ddbPath, formOrQueryParam(req, "id")));
