@@ -6,15 +6,14 @@ EXPOSE 5000
 
 # Prerequisites
 ENV TZ=America/New_York
+COPY install_nexus.sh /tmp/install_nexus.sh
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update && apt install -y --fix-missing --no-install-recommends build-essential software-properties-common
 RUN apt install -y --fix-missing --no-install-recommends ca-certificates cmake git checkinstall sqlite3 spatialite-bin libgeos-dev libgdal-dev g++-10 gcc-10 pdal libpdal-dev libzip-dev
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 1000 --slave /usr/bin/g++ g++ /usr/bin/g++-10
-RUN apt install -y curl && bash -c "curl -L https://github.com/DroneDB/libnexus/releases/download/v1.0.0/nxs-ubuntu-22.04-$(arch).deb --output /tmp/nxs-ubuntu-22.04-$(arch).deb" && \
-    bash -c "dpkg-deb -x /tmp/nxs-ubuntu-22.04-$(arch).deb /usr" && \
+RUN apt install -y curl && /bin/bash -c "/tmp/install_nexus.sh" && \
     curl --silent --location https://deb.nodesource.com/setup_14.x | bash - && \
     apt install nodejs -y && \
-    bash -c "rm /tmp/nxs-ubuntu-22.04-$(arch).deb" && \
     apt remove -y curl
 
 # Build ddb components
@@ -55,9 +54,7 @@ RUN apt update && apt install -y --fix-missing --no-install-recommends gnupg2 ca
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6b827c12c2d425e227edca75089ebe08314df160 && \
     apt-get update && apt-get install -y curl libspatialite7 libgdal30 libzip4 libpdal-base13 libgeos3.10.2 && \
     curl --silent --location https://deb.nodesource.com/setup_14.x | bash - && \
-    bash -c "curl -L https://github.com/DroneDB/libnexus/releases/download/v1.0.0/nxs-ubuntu-22.04-$(arch).deb --output /tmp/nxs-ubuntu-22.04-$(arch).deb" && \
-    bash -c "dpkg-deb -x /tmp/nxs-ubuntu-22.04-$(arch).deb /usr" && \
-    bash -c "rm /tmp/nxs-ubuntu-22.04-$(arch).deb" && \
+    /bin/bash -c "/tmp/install_nexus.sh" && \
     curl --silent --location https://deb.nodesource.com/setup_14.x | bash - && \
     apt install -y nodejs && \
     dpkg -i *.deb && rm /*.deb && mkdir /storage && \
