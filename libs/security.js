@@ -88,7 +88,7 @@ const allowDatasetRead = [allowAnonymous, userAuth, getDDBPath, async function(r
 
     try{
         const info = await ddb.info(req.ddbPath);
-        if (info[0].properties.public){
+        if ([ddb.Visibility.PUBLIC, ddb.Visibility.UNLISTED].includes(info[0].properties?.meta?.visibility?.data)){
             next();
             return;
         }
