@@ -32,6 +32,13 @@ app.use(orgs.api);
 app.use(ds.api);
 app.use(push.api);
 
+app.use((req, res, next) => {
+    if (req.url.endsWith(".pbf")){
+        res.set('Content-Encoding', 'gzip');
+    }
+    next();
+});
+
 app.use(express.static('vendor/hub/build'));
 
 app.enable('trust proxy');
