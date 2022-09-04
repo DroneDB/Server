@@ -20,6 +20,7 @@ const ds = require('./libs/ds');
 const orgs = require('./libs/orgs');
 const users = require('./libs/users');
 const push = require('./libs/push');
+const stac = require('./libs/stac');
 
 app.use(cookieParser());
 
@@ -31,6 +32,7 @@ app.use(share.api);
 app.use(orgs.api);
 app.use(ds.api);
 app.use(push.api);
+app.use(stac.api);
 
 app.use((req, res, next) => {
     if (req.url.endsWith(".pbf")){
