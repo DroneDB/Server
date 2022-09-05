@@ -72,7 +72,7 @@ router.get('/stac', cors(), asyncHandle(async (req, res) => {
         const name = path.basename(info[0].path);
         
         publicDatasets.push({
-            org: "public",
+            org: "projects",
             ds: name,
             name
         });
