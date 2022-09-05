@@ -66,7 +66,7 @@ class Mode{
                     logger.error(`Build error: ${e}`);
                 }
 
-                await ddb.chattr(storagePath, { public: true });
+                await ddb.meta.set(storagePath, "", "visibility", ddb.Visibility.PUBLIC);
             }
         }
     }
