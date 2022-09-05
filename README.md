@@ -10,7 +10,7 @@
   </a>
 
   <p align="center">
-    A self-hosted aerial data management and sharing server.
+    A self-hosted, STAC-compliant, aerial data management and sharing server.
   </p>
 </div>
 
