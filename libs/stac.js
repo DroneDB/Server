@@ -8,6 +8,7 @@ const { fsReaddir } = require('./fs');
 const { storagePath } = require('../config');
 const path = require("path");
 const cors = require('cors');
+const Directories = require('./Directories');
 
 const stacCollectionRootFromReq = (req) => {
     return `${req.secure ? "https" : "http"}://${req.headers.host}/orgs/${req.params.org}/ds/${req.params.ds}`;
